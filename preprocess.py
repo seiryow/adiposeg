@@ -38,7 +38,7 @@ def make_image_array(path):
     raw_path = os.path.join(path,'raw/')
     label_path = os.path.join(path,'label/')
 
-    print '*** Load Raw image ***'
+    print 'Load raw images ...'
     image_list,name_list = get_raw_list(raw_path)
 
     total = len(image_list)
@@ -57,7 +57,7 @@ def make_image_array(path):
         i+=1
         print 'load raw image:',i,'/',total
 
-    print '*** Load Label Image ***'
+    print 'Load label images ...'
     if check_label_list(label_path,image_list) == False:
         return imgs, None, name_list
     else:
@@ -77,9 +77,9 @@ def make_image_array(path):
     return imgs, labels, name_list
 
 if __name__ == '__main__':
-    print '****************************'
-    print '*** Load Training Images ***'
-    print '****************************'
+    print '*'*30
+    print 'Load training images...'
+    print '*'*30
     imgs_train_raw, imgs_train_label, imgs_train_name = make_image_array(os.path.join(input_path,'train/'))
 
     np.save('train_raw.npy', imgs_train_raw)
@@ -87,9 +87,9 @@ if __name__ == '__main__':
 
     print imgs_train_raw.shape
 
-    print '****************************'
-    print '***   Load Test Images   ***'
-    print '****************************'
+    print '*'*30
+    print 'Load test images...'
+    print '*'*30
     imgs_test_raw, imgs_test_label, imgs_test_name = make_image_array(os.path.join(input_path,'test/'))
     np.save('test_raw.npy', imgs_test_raw)
     np.save('test_label.npy', imgs_test_label)
