@@ -1,29 +1,25 @@
 import os
+import cv2
 import numpy as np
+import keras
 from datetime import datetime
-from keras.models import Model
-from keras.layers.core import Lambda
+from keras.models import Model, Sequential, load_model
+from keras.layers.core import Lambda, Reshape, Permute, Activation, Dense, Flatten, Dropout
 from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint
-from keras import backend as K
-
-K.set_image_dim_ordering('th')  # Theano dimension ordering in this code
+from keras.engine.topology import Merge
 
 weight_path = 'weights/'
 
-img_rows = 512
-img_cols = 512
+img_rows = 128
+img_cols = 128
 
-## this function is unused now
-def depth_softmax(matrix):
-    sigmoid = lambda x: 1 / (1 + K.exp(-x))
-    sigmoided_matrix = sigmoid(matrix)
-    softmax_matrix = sigmoided_matrix / K.sum(sigmoided_matrix, axis=0)
-    return softmax_matrix
+input_size = (1, img_rows, img_cols)
+
 
 def get_unet():
-    inputs = Input((1,img_rows,img_cols))
+    inputs = Input(input_size)
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv2)
@@ -59,12 +55,16 @@ def get_unet():
     conv17 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(up4)
     conv18 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv17)
 
-    conv19 = Convolution2D(1, 1, 1, activation='sigmoid')(conv18)
+    conv19 = Convolution2D(2, 1, 1, activation=None, border_mode='same')(conv18)
+    conv19 = Reshape((2,img_rows*img_cols))(conv19)
+    conv19 = Permute((2,1))(conv19)
+    conv19 = Activation('softmax')(conv19)
 
     model = Model(input=inputs, output=conv19)
     model.summary()
 
     return model
+
 
 def train():
     print '-'*30
@@ -79,8 +79,9 @@ def train():
     print '-'*30
     print 'Creating and compiling model...'
     print '-'*30
+
     model = get_unet()
-    model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     ##make output dir
     time = datetime.now()
@@ -100,17 +101,11 @@ def train():
     print '-'*30
 
     ## After each epoch if validation_acc is best, save the model
-    model_checkpoint = ModelCheckpoint(os.path.join(dir_path,'weights.{epoch:03d}.hdf5'), monitor='val_acc',save_best_only=True)
+    model_checkpoint = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
 
-    ## Realtime Data Augumentation
-    #datagen = ImageDataGenerator(rotation_range=180, horizontal_flip=True)
-    #datagen.fit(imgs_train_raw)
-
-    model.fit(imgs_train_raw,imgs_train_label,batch_size=2, nb_epoch=5,
-        validation_data=[imgs_test_raw,imgs_test_label],callbacks=[model_checkpoint])
-
-    #model.fit_generator(datagen.flow(imgs_test_raw,imgs_test_label,batch_size=2), samples_per_epoch=6, nb_epoch=1,
-    #    validation_data=[imgs_test_raw,imgs_test_label],callbacks=[model_checkpoint])
+    ## train
+    model.fit(imgs_train_raw, imgs_train_label, batch_size=20, nb_epoch=300, verbose=1, shuffle=True,
+        validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint])
 
     model.save(os.path.join(weight_path,'unet.hdf5'))
 
