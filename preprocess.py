@@ -1,17 +1,15 @@
 import os
-import imghdr
 import numpy as np
-from PIL import Image
-from keras.preprocessing.image import load_img, img_to_array
-from predict import clabels_to_img
-from predict import visualize as vs
+from image import load_img, array_to_img, img_to_array
 
 input_path = 'input/'
 
-img_rows = 128
-img_cols = 128
+img_rows = 512
+img_cols = 512
+
 
 def get_file_list(path):
+    import imghdr
     file_list = []
     name_list = []
     for (root, dirs, files) in os.walk(path):
@@ -26,7 +24,8 @@ def get_file_list(path):
     return file_list, name_list
 
 
-def check_label_list(path,file_list):
+## this function is now unused
+def check_label_list(path, file_list):
     for file in file_list:
         target = os.path.join(path,file).replace("\\", "/")
         if not os.path.exists(target):
@@ -36,240 +35,158 @@ def check_label_list(path,file_list):
     return True
 
 
-def categorize_label(clabels,label,i):
-    label_array = img_to_array(label) / 255
-    label_array = label_array.astype('uint8')
+def categorize_label(imgs, data_augument=False):
+    clabels = np.zeros([imgs.shape[0], 1*imgs.shape[2]*imgs.shape[3], 2], dtype='uint8')
 
-    l = 0
-    for j in range(0, img_rows):
-        for k in range(0, img_cols):
-            if label_array[0][j][k] == 0:
-                clabels[i][l][0] = 1
-                clabels[i][l][1] = 0
-            else :
-                clabels[i][l][0] = 0
-                clabels[i][l][1] = 1
-            l += 1
+    i = 0
+    for img_array in imgs:
+        if data_augument == True and int(i/16) % 12 !=0:
+            index = i - 16 * (int(i/16) % 12)
+            clabels[i] = clabels[index]
+        else:
+            l = 0
+            for j in xrange(imgs.shape[2]):
+                for k in xrange(imgs.shape[3]):
+                    if img_array[0][j][k] == 0:
+                        clabels[i][l][0] = 1
+                        clabels[i][l][1] = 0
+                    else:
+                        clabels[i][l][0] = 0
+                        clabels[i][l][1] = 1
+                    l += 1
+        i += 1
+
+        if i%1000 == 0 or i == clabels.shape[0]:
+            print 'Categorized', i, '/',  clabels.shape[0]
 
     return clabels
 
 
-def gamma_image_train(imgs, img, i):
-    gamma = 0.1
-    imgs[i] = img_to_array(img) ** gamma / 255
-    i += 1
+def data_augumentation(img, img_type):
+    from image import gamma_img, rotate_img, flip_img
 
-    gamma = 0.25
-    while gamma <= 2.5:
-        tmp_array = img_to_array(img) ** gamma / 255
-        imgs[i] = tmp_array
-        i += 1
-        gamma += 0.25
+    augmentated_list = list()
+    augmentated_list.append(img)
 
-    return imgs, i
+    augmentated_list = gamma_img(augmentated_list, img_type)
+    augmentated_list = rotate_img(augmentated_list)
+    augmentated_list = flip_img(augmentated_list)
 
+    del augmentated_list[0]
 
-def gamma_image_test(clabels, label, i):
-    for k in range(0,11):
-        if k == 0:
-            clabels = categorize_label(clabels, label, i)
-        else:
-            clabels[i+k] = clabels[i]
-
-    i += 11
-    return clabels, i
+    return augmentated_list
 
 
-def rotate_image_train(imgs, img, i):
-    ## rotate 90 and get its gamma
-    tmp = img.transpose(Image.ROTATE_90)
-    imgs[i] = img_to_array(tmp) / 255
-    i += 1
+def make_image_array(path, img_type, data_augument=False):
+    from image import divide_img
 
-    imgs, i = gamma_image_train(imgs, tmp, i)
+    if img_type not in {'raw', 'label'}:
+        raise ValueError('Invalid img_type:', img_type)
 
-    ## rotate 180 and get its gamma
-    tmp = img.transpose(Image.ROTATE_180)
-    imgs[i] = img_to_array(tmp) / 255
-    i += 1
+    if img_type == 'raw':
+        print 'Load raw images ...'
+        file_path = os.path.join(path,'raw/')
+        file_list, name_list = get_file_list(file_path)
 
-    imgs, i = gamma_image_train(imgs, tmp, i)
+    if img_type == 'label':
+        print 'Load label images ...'
+        file_path = os.path.join(path,'label/')
+        file_list, name_list = get_file_list(file_path)
 
-    ## rotate 270 and get its gamma
-    tmp = img.transpose(Image.ROTATE_270)
-    imgs[i] = img_to_array(tmp) / 255
-    i += 1
+    tmp_list = list()
 
-    ## gamma
-    imgs, i = gamma_image_train(imgs, tmp, i)
+    for file in file_list:
+        img = load_img(os.path.join(file_path, file), grayscale=True, target_size=(img_rows,img_cols))
+        tmp_list.append(img)
 
-    return imgs, i
+        if data_augument == True:
+            augmentated_list = data_augumentation(img, img_type=img_type)
 
+            for tmp in augmentated_list:
+                tmp_list.append(tmp)
 
-def rotate_image_test(clabels, label, i):
-    from PIL import Image
+    total = len(tmp_list) * 16
 
-    # rotate 90 and get its gamma
-    tmp = label.transpose(Image.ROTATE_90)
-    clabels = categorize_label(clabels, tmp, i)
-    i += 1
+    if img_type == 'raw':
+        imgs = np.zeros([total, 1, img_rows/4, img_cols/4], dtype='float32')
 
-    clabels, i = gamma_image_test(clabels, tmp, i)
+    if img_type == 'label':
+        imgs = np.zeros([total, 1, img_rows/4, img_cols/4], dtype='uint8')
 
-    # rotate 180 and get its gamma
-    tmp = label.transpose(Image.ROTATE_180)
-    clabels = categorize_label(clabels, tmp, i)
-    i += 1
+    i=0
+    for tmp in tmp_list:
+        divided_tmp = divide_img(tmp)
 
-    clabels, i = gamma_image_test(clabels, tmp, i)
-
-    # rotate 270 and get its gamma
-    tmp = label.transpose(Image.ROTATE_270)
-    clabels = categorize_label(clabels, tmp, i)
-    i += 1
-
-    clabels, i = gamma_image_test(clabels, tmp, i)
-
-    return clabels, i
-
-
-def data_augumentation_train(imgs, img, i):
-    from PIL import Image
-
-    ## original
-    # get gamma
-    imgs, i = gamma_image_train(imgs, img, i)
-
-    # rotate and get its gamma
-    imgs, i = rotate_image_train(imgs, img, i)
-
-    ## flip
-    # make flip
-    flip = img.transpose(Image.FLIP_LEFT_RIGHT)
-    imgs[i] = img_to_array(flip) / 255
-    i+= 1
-
-    # get gamma
-    imgs, i = gamma_image_train(imgs, flip, i)
-
-    # rotate and get its gamma
-    imgs, i = rotate_image_train(imgs, flip, i)
-
-    return imgs, i
-
-
-def data_augumentation_test(clabels, label, i):
-    from PIL import Image
-
-    ## original
-    # get gamma
-    clabels, i = gamma_image_test(clabels, label, i)
-
-    # rotate and get its gamma
-    clabels, i = rotate_image_test(clabels, label, i)
-
-    ## flip
-    # make flip
-    flip = label.transpose(Image.FLIP_LEFT_RIGHT)
-    clabels = categorize_label(clabels, flip, i)
-    i += 1
-
-    # get gamma
-    clabels, i = gamma_image_test(clabels, flip, i)
-
-    # rotate and get its gamma
-    clabels, i = rotate_image_test(clabels, flip, i)
-
-    return clabels, i
-
-
-def make_image_array(path,data_augumentation_flag):
-    raw_path = os.path.join(path,'raw/')
-    label_path = os.path.join(path,'label/')
-
-    print 'Load raw images ...'
-    image_list,name_list = get_file_list(raw_path)
-
-    total = len(image_list)
-
-    if data_augumentation_flag:
-        total = total * 2 * 4 * 12
-
-    imgs = np.ndarray((total, 1, img_rows, img_cols))
-    imgs = imgs.astype('float32')
-
-    i = 0
-    for image in image_list:
-        img = load_img(os.path.join(raw_path,image), grayscale=True, target_size=(img_rows,img_cols))
-        img_array = img_to_array(img) / 255
-
-        imgs[i] = img_array
-        i+=1
-
-        if data_augumentation_flag:
-            imgs, i = data_augumentation_train(imgs, img, i)
-
-        print 'load raw image:',i,'/',total
-
-    print 'Load label images ...'
-    if check_label_list(label_path,image_list) == False:
-        return imgs, None, name_list
-    else:
-        categorized_labels = np.ndarray((total, 1*img_rows*img_cols, 2))
-        categorized_labels = categorized_labels.astype('int')
-
-        i = 0
-        for image in image_list:
-            label = load_img(os.path.join(label_path,image), grayscale=True, target_size=(img_rows,img_cols))
-            categorized_labels = categorize_label(categorized_labels, label, i)
+        for patch in divided_tmp:
+            imgs[i] = img_to_array(patch) / 255
             i += 1
 
-            if data_augumentation_flag:
-                categorized_labels, i = data_augumentation_test(categorized_labels, label, i)
+    if img_type == 'label':
+        imgs = categorize_label(imgs, data_augument=data_augument)
 
-            print 'load label image:',i,'/',total
+    print 'loaded', len(file_list), 'images.'
 
-    return imgs, categorized_labels, name_list
+    return imgs, name_list
 
+## this function is for debug
+def visualize(data_path, img_type):
+    from image import combine_img
+    from predict2 import clabels_to_img
 
-def visualize(data_path):
-    from PIL import Image
-    from keras.preprocessing.image import array_to_img
-    test_path = 'test'
+    if img_type not in {'raw', 'label'}:
+        raise ValueError('Invalid img_type:', img_type)
 
-    imgs = np.load(data_path)
+    test_path = 'test/'
+    data = np.load(data_path)
+
+    if img_type == 'label':
+        imgs = clabels_to_img(data)
+    else:
+        imgs = data
+
     total = len(imgs)
 
-    i = 0
-    for img_array in imgs:
-        img = array_to_img(img_array,scale=True)
-        data_path = os.path.join(test_path,'img'+str(i)+'.png')
-        img.save(data_path)
-        i+=1
-        if i % 100 == 0:
-            print 'save label image:',i,'/',total
+    tmp_list = list()
+    combined_imgs = np.zeros([total/16, 1, imgs.shape[2], imgs.shape[3]])
 
-    print 'Done.'
+    for img_array in imgs:
+        img_array *= 255
+        img = array_to_img(img_array, scale=False)
+        tmp_list.append(img)
+
+    for x in xrange(total/16):
+        combined_img = combine_img(tmp_list[16*x:16*(x+1)])
+
+        data_path = os.path.join(test_path,'img'+str(x)+'.png')
+
+        combined_img.save(data_path)
+        print 'save image:',x+1,'/',total/16
 
 
 if __name__ == '__main__':
     print '*'*30
     print 'Load training images...'
     print '*'*30
-    imgs_train_raw, imgs_train_label, imgs_train_name = make_image_array(os.path.join(input_path,'train/'), 1)
-
-    np.save('train_raw.npy', imgs_train_raw)
-    np.save('train_label.npy', imgs_train_label)
+    train_path = os.path.join(input_path,'train/')
+    imgs_train_raw, tmp_name = make_image_array(train_path, img_type='raw', data_augument=True)
+    imgs_train_label, tmp_name = make_image_array(train_path, img_type='label', data_augument=True)
 
     print '*'*30
     print 'Load test images...'
     print '*'*30
-    imgs_test_raw, imgs_test_label, imgs_test_name = make_image_array(os.path.join(input_path,'test/'), 0)
-    np.save('test_raw.npy', imgs_test_raw)
-    np.save('test_label.npy', imgs_test_label)
-    np.save('test_name.npy',imgs_test_name)
+    test_path = os.path.join(input_path,'test/')
+    imgs_test_raw, tmp_name = make_image_array(test_path, img_type='raw', data_augument=False)
+    imgs_test_label, tmp_name = make_image_array(test_path, img_type='label', data_augument=False)
 
     print '*'*30
+
+    print 'Save loaded images to numpy files...'
+
+    np.save('train_raw.npy', imgs_train_raw)
+    np.save('train_label.npy', imgs_train_label)
+    np.save('test_raw.npy', imgs_test_raw)
+    np.save('test_label.npy', imgs_test_label)
+    np.save('test_name.npy', tmp_name)
 
     print 'imgs_train_raw:',imgs_train_raw.shape
     print 'imgs_train_label:',imgs_train_label.shape
@@ -280,9 +197,8 @@ if __name__ == '__main__':
 
     print 'Done.'
 
-    #vs(clabels_to_img(imgs_test_label))
-
-    #visualize('train_raw.npy')
-    #visualize('train_label.npy')
-    #visualize('test_raw.npy')
-    #visualize('test_label.npy')
+    ## for test display
+    #visualize('train_raw.npy', img_type='raw')
+    visualize('train_label.npy', img_type='label')
+    #visualize('test_raw.npy',img_type='raw')
+    #visualize('test_label.npy', img_type='label')

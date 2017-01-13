@@ -2,24 +2,27 @@ import os
 import cv2
 import numpy as np
 import keras
+import csv
 from datetime import datetime
 from keras.models import Model, Sequential, load_model
 from keras.layers.core import Lambda, Reshape, Permute, Activation, Dense, Flatten, Dropout
 from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint
-from keras.engine.topology import Merge
 
 weight_path = 'weights/'
+model_path = 'weights/2017-01-10/03-11-13/weights.009.hdf5'
+
+model_load_flag = 0
 
 img_rows = 128
 img_cols = 128
 
-input_size = (1, img_rows, img_cols)
-
+batch_size = 64
+nb_epoch = 10
 
 def get_unet():
-    inputs = Input(input_size)
+    inputs = Input((1, img_rows, img_cols))
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv2)
@@ -39,20 +42,28 @@ def get_unet():
     conv9 = Convolution2D(1024, 3, 3, activation='relu', border_mode='same')(pool4)
     conv10 = Convolution2D(1024, 3, 3, activation='relu', border_mode='same')(conv9)
 
-    up1 = merge([UpSampling2D(size=(2, 2))(conv10), conv8], mode='concat', concat_axis=1)
-    conv11 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(up1)
+    deconv1 = UpSampling2D(size=(2,2))(conv10)
+    deconv1 = Convolution2D(512, 2, 2, activation='relu', border_mode='same')(deconv1)
+    merge1 = merge([deconv1, conv8], mode='concat', concat_axis=1)
+    conv11 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(merge1)
     conv12 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv11)
 
-    up2 = merge([UpSampling2D(size=(2, 2))(conv12), conv6], mode='concat', concat_axis=1)
-    conv13 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(up2)
+    deconv2 = UpSampling2D(size=(2,2))(conv12)
+    deconv2 = Convolution2D(256, 2, 2, activation='relu', border_mode='same')(deconv2)
+    merge2 = merge([deconv2, conv6], mode='concat', concat_axis=1)
+    conv13 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(merge2)
     conv14 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv13)
 
-    up3 = merge([UpSampling2D(size=(2, 2))(conv14), conv4], mode='concat', concat_axis=1)
-    conv15 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(up3)
+    deconv3 = UpSampling2D(size=(2,2))(conv14)
+    deconv3 = Convolution2D(128, 2, 2, activation='relu', border_mode='same')(deconv3)
+    merge3 = merge([deconv3, conv4], mode='concat', concat_axis=1)
+    conv15 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(merge3)
     conv16 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(conv15)
 
-    up4 = merge([UpSampling2D(size=(2, 2))(conv16), conv2], mode='concat', concat_axis=1)
-    conv17 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(up4)
+    deconv4 = UpSampling2D(size=(2,2))(conv16)
+    deconv4 = Convolution2D(64, 2, 2, activation='relu', border_mode='same')(deconv4)
+    merge4 = merge([deconv4, conv2], mode='concat', concat_axis=1)
+    conv17 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(merge4)
     conv18 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv17)
 
     conv19 = Convolution2D(2, 1, 1, activation=None, border_mode='same')(conv18)
@@ -80,8 +91,11 @@ def train():
     print 'Creating and compiling model...'
     print '-'*30
 
-    model = get_unet()
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    if model_load_flag == 0:
+        model = get_unet()
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    else:
+        model = load_model(model_path)
 
     ##make output dir
     time = datetime.now()
@@ -101,12 +115,13 @@ def train():
     print '-'*30
 
     ## After each epoch if validation_acc is best, save the model
-    model_checkpoint = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
+    model_checkpoint = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=False)
 
     ## train
-    model.fit(imgs_train_raw, imgs_train_label, batch_size=20, nb_epoch=300, verbose=1, shuffle=True,
-        validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint])
+    history = model.fit(imgs_train_raw, imgs_train_label, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
+            validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint])
 
+    model.save(os.path.join(dir_path,'result.hdf5'))
     model.save(os.path.join(weight_path,'unet.hdf5'))
 
 if __name__ == '__main__':
