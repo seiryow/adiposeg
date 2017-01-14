@@ -131,7 +131,7 @@ def make_image_array(path, img_type, data_augument=False):
 ## this function is for debug
 def visualize(data_path, img_type):
     from image import combine_img
-    from predict2 import clabels_to_img
+    from predict import clabels_to_img
 
     if img_type not in {'raw', 'label'}:
         raise ValueError('Invalid img_type:', img_type)
@@ -199,6 +199,6 @@ if __name__ == '__main__':
 
     ## for test display
     #visualize('train_raw.npy', img_type='raw')
-    visualize('train_label.npy', img_type='label')
+    #visualize('train_label.npy', img_type='label')
     #visualize('test_raw.npy',img_type='raw')
     #visualize('test_label.npy', img_type='label')

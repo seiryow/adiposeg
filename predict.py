@@ -5,13 +5,13 @@ from datetime import datetime
 
 output_path = 'output/'
 #model_path = 'weights/unet.hdf5'
-model_path = 'weights/2017-01-10/07-16-17/weights.007.hdf5'
+model_path = 'weights/2017-01-13/19-53-09/result.hdf5'
 
 img_rows = 512
 img_cols = 512
 
 def predict(model, imgs_test_raw):
-    output = model.predict(imgs_test_raw, batch_size=1, verbose=1)
+    output = model.predict(imgs_test_raw, batch_size=16, verbose=1)
 
     output = np.round(output)
     output = output.astype('uint8')
@@ -42,6 +42,32 @@ def clabels_to_img(clabels):
     return imgs
 
 
+def make_error_file(dir_path, imgs_test_name, y_true, y_pred):
+    import csv
+    from metrics import pixel_error_to_img, rand_error_to_img
+
+    f = open(os.path.join(dir_path,'error.csv'), 'ab')
+    csvWriter = csv.writer(f)
+
+    pix_err = pixel_error_to_img(y_true, y_pred)
+    rand_err = rand_error_to_img(y_true, y_pred)
+
+    hist = np.zeros([imgs_test_name.shape[0],2],dtype='float32')
+    history = list()
+    s = "img,pixel_err,rand_err"
+    l = s.split(",")
+    csvWriter.writerow(l)
+
+    for x in xrange(hist.shape[0]):
+        tmp = list()
+        tmp.append(imgs_test_name[x])
+        tmp.append(pix_err[x])
+        tmp.append(rand_err[x])
+        csvWriter.writerow(tmp)
+
+    print 'Made Error File.'
+
+
 def visualize(dir_path, imgs_test_name, imgs, visualize=True):
     from image import combine_img, array_to_img, img_to_array
 
@@ -64,72 +90,6 @@ def visualize(dir_path, imgs_test_name, imgs, visualize=True):
         combined_imgs[x] = img_to_array(combined_img) / 255
 
     return combined_imgs
-
-
-def flatten(y):
-    tmp = np.zeros([y.shape[0]*y.shape[1]],dtype='uint8')
-
-    l = 0
-    for x in xrange(y.shape[0]):
-        for k in xrange(y.shape[1]):
-            if y[x][k][0] == 1:
-                tmp[l] = 0
-            else:
-                tmp[l] = 1
-            l += 1
-
-    return tmp
-
-
-def calculate_pixel_error(y_true, y_pred):
-    from sklearn.metrics import hamming_loss
-
-    loss = np.zeros([y_true.shape[0]/16],dtype='float32')
-
-    for x in xrange(y_true.shape[0]/16):
-        flatten_true = flatten(y_true[x:x+16])
-        flatten_pred = flatten(y_pred[x:x+16])
-        loss[x] = hamming_loss(flatten_true, flatten_pred)
-
-    return loss
-
-
-def calculate_rand_error(y_true, y_pred):
-    from sklearn.metrics.cluster import adjusted_rand_score
-
-    loss = np.zeros([y_true.shape[0]/16],dtype='float32')
-
-    for x in xrange(y_true.shape[0]/16):
-        flatten_true = flatten(y_true[x:x+16])
-        flatten_pred = flatten(y_pred[x:x+16])
-        loss[x] = 1 - adjusted_rand_score(flatten_true, flatten_pred)
-
-    return loss
-
-
-def make_error_file(dir_path, imgs_test_name, y_true, y_pred):
-    import csv
-
-    f = open(os.path.join(dir_path,'error.csv'), 'ab')
-    csvWriter = csv.writer(f)
-
-    pix_err = calculate_pixel_error(y_true, y_pred)
-    rand_err = calculate_rand_error(y_true, y_pred)
-
-    hist = np.zeros([imgs_test_name.shape[0],2],dtype='float32')
-    history = list()
-    s = "img,pixel_err,rand_err"
-    l = s.split(",")
-    csvWriter.writerow(l)
-
-    for x in xrange(hist.shape[0]):
-        tmp = list()
-        tmp.append(imgs_test_name[x])
-        tmp.append(pix_err[x])
-        tmp.append(rand_err[x])
-        csvWriter.writerow(tmp)
-
-    print 'Made Error File.'
 
 
 def visualize_ts(dir_path, imgs_test_name, imgs_true, imgs_pred):
