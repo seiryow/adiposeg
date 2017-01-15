@@ -1,6 +1,7 @@
 import numpy as np
 from PIL import Image
 
+
 def load_img(path, grayscale=False, target_size=None):
     '''Load an image into PIL format.
     # Arguments
@@ -158,7 +159,7 @@ def flip_img(img_list):
     size = len(img_list)
 
     for x in xrange(size):
-        tmp_list.append(img_list[x])    
+        tmp_list.append(img_list[x])
 
     for x in xrange(size):
         flip = img_list[x].transpose(Image.FLIP_LEFT_RIGHT)

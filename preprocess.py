@@ -1,38 +1,14 @@
 import os
 import numpy as np
-from image import load_img, array_to_img, img_to_array
+from ios import check_file_list
+
 
 input_path = 'input/'
 
 img_rows = 512
 img_cols = 512
 
-
-def get_file_list(path):
-    import imghdr
-    file_list = []
-    name_list = []
-    for (root, dirs, files) in os.walk(path):
-        for file in files:
-            target = os.path.join(root,file).replace("\\", "/")
-            if os.path.isfile(target):
-                if imghdr.what(target) != None :
-                    target = target.replace(path,'')
-                    file_list.append(target)
-                    name_list.append(file)
-
-    return file_list, name_list
-
-
-## this function is now unused
-def check_label_list(path, file_list):
-    for file in file_list:
-        target = os.path.join(path,file).replace("\\", "/")
-        if not os.path.exists(target):
-            print 'Not exist the label of ',file
-            return False
-
-    return True
+data_augument = True
 
 
 def categorize_label(imgs, data_augument=False):
@@ -78,7 +54,8 @@ def data_augumentation(img, img_type):
 
 
 def make_image_array(path, img_type, data_augument=False):
-    from image import divide_img
+    from ios import get_file_list
+    from image import load_img, divide_img, array_to_img, img_to_array
 
     if img_type not in {'raw', 'label'}:
         raise ValueError('Invalid img_type:', img_type)
@@ -128,6 +105,7 @@ def make_image_array(path, img_type, data_augument=False):
 
     return imgs, name_list
 
+
 ## this function is for debug
 def visualize(data_path, img_type):
     from image import combine_img
@@ -164,21 +142,27 @@ def visualize(data_path, img_type):
 
 
 if __name__ == '__main__':
-    print '*'*30
+    print '*'*50
     print 'Load training images...'
-    print '*'*30
+    print '*'*50
     train_path = os.path.join(input_path,'train/')
-    imgs_train_raw, tmp_name = make_image_array(train_path, img_type='raw', data_augument=True)
-    imgs_train_label, tmp_name = make_image_array(train_path, img_type='label', data_augument=True)
+    if check_file_list(train_path)==False:
+        raise ValueError('Labels do not match with raws.')
 
-    print '*'*30
+    imgs_train_raw, tmp_name = make_image_array(train_path, img_type='raw', data_augument=data_augument)
+    imgs_train_label, tmp_name = make_image_array(train_path, img_type='label', data_augument=data_augument)
+
+    print '*'*50
     print 'Load test images...'
-    print '*'*30
+    print '*'*50
     test_path = os.path.join(input_path,'test/')
+    if check_file_list(test_path)==False:
+        raise ValueError('Labels do not match with raws.')
+
     imgs_test_raw, tmp_name = make_image_array(test_path, img_type='raw', data_augument=False)
     imgs_test_label, tmp_name = make_image_array(test_path, img_type='label', data_augument=False)
 
-    print '*'*30
+    print '*'*50
 
     print 'Save loaded images to numpy files...'
 
@@ -193,7 +177,7 @@ if __name__ == '__main__':
     print 'imgs_test_raw:',imgs_test_raw.shape
     print 'imgs_test_label:',imgs_test_label.shape
 
-    print '*'*30
+    print '*'*50
 
     print 'Done.'
 

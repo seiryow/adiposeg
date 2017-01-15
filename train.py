@@ -1,25 +1,24 @@
 import os
 import numpy as np
-import keras
-from datetime import datetime
-from keras.models import Model, load_model
-from keras.layers.core import Reshape, Permute, Activation
-from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
-from keras.callbacks import ModelCheckpoint
-from keras import backend as K
+from ios import make_output_dir
+from keras.models import load_model
+from keras.callbacks import ModelCheckpoint, EarlyStopping
+
 
 weight_path = 'weights/'
-model_path = 'weights/2017-01-10/03-11-13/weights.009.hdf5'
+#model_path = 'weights/2017-01-10/03-11-13/weights.009.hdf5'
 
 model_load_flag = 0
 
-img_rows = 128
-img_cols = 128
+batch_size = 16 ## batch_size must be smaller than num of samples
+nb_epoch = 10
 
-batch_size = 16
-nb_epoch = 20
 
-def get_unet():
+def get_unet(img_rows, img_cols):
+    from keras.models import Model
+    from keras.layers.core import Reshape, Permute, Activation
+    from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
+
     inputs = Input((1, img_rows, img_cols))
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv1)
@@ -78,52 +77,64 @@ def get_unet():
 
     return model
 
+
+def make_history_file(history):
+    import csv
+    f = open(os.path.join(dir_path,'hist.csv'), 'ab')
+    csvWriter = csv.writer(f)
+
+    for key in hist.history:
+        tmp = list()
+        tmp.append(key)
+        for num in hist.history[key]:
+            tmp.append(num)
+        csvWriter.writerow(tmp)
+
+    f.close()
+
+
 def train():
-    print '-'*30
+    print '*'*50
     print 'Loading train data...'
-    print '-'*30
+    print '*'*50
     imgs_train_raw = np.load('train_raw.npy')
     imgs_train_label = np.load('train_label.npy')
 
     imgs_test_raw = np.load('test_raw.npy')
     imgs_test_label = np.load('test_label.npy')
 
-    print '-'*30
-    print 'Creating and compiling model...'
-    print '-'*30
+    print '*'*50
+    print 'Creating and compiling the model...'
+    print '*'*50
+
+    img_rows = imgs_train_raw.shape[2]
+    img_cols = imgs_train_raw.shape[3]
 
     if model_load_flag == 0:
-        model = get_unet()
+        model = get_unet(img_rows, img_cols)
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     else:
         model = load_model(model_path)
 
-    ##make output dir
-    time = datetime.now()
-
-    day_dir = time.strftime('%Y-%m-%d')
-    dir_path = os.path.join(weight_path,day_dir)
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
-
-    time_dir = time.strftime('%H-%M-%S')
-    dir_path = os.path.join(dir_path,time_dir)
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
-
-    print '-'*30
+    print '*'*50
     print 'Fitting model...'
-    print '-'*30
+    print '*'*50
+
+    ## make output dir
+    dir_path = make_output_dir(weight_path)
 
     ## After each epoch if validation_acc is best, save the model
     model_checkpoint = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
+    checkpoint2 = ModelCheckpoint(os.path.join(weight_path, 'unet.hdf5'), monitor='val_acc', save_best_only=True)
+    early_stopping = EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
 
     ## train
-    history = model.fit(imgs_train_raw, imgs_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
-            validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint])
+    hist = model.fit(imgs_train_raw, imgs_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
+            validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint, checkpoint2, early_stopping])
+
+    make_history_file(hist)
 
     model.save(os.path.join(dir_path,'result.hdf5'))
-    model.save(os.path.join(weight_path,'unet.hdf5'))
 
     print 'Done.'
 
