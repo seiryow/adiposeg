@@ -3,6 +3,8 @@ import numpy as np
 from ios import make_output_dir
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping
+from metrics import rand_error_to_patch
+from predict import predict
 
 
 weight_path = 'weights/'
@@ -13,11 +15,11 @@ model_load_flag = 0
 batch_size = 16 ## batch_size must be smaller than num of samples
 nb_epoch = 10
 
-
 def get_unet(img_rows, img_cols):
     from keras.models import Model
     from keras.layers.core import Reshape, Permute, Activation
     from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
+    from keras.layers.normalization import BatchNormalization
 
     inputs = Input((1, img_rows, img_cols))
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
@@ -30,10 +32,12 @@ def get_unet(img_rows, img_cols):
 
     conv5 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(pool2)
     conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv5)
+    conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv6)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv6)
 
     conv7 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(pool3)
     conv8 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv7)
+    conv8 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv8)
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv8)
 
     conv9 = Convolution2D(1024, 3, 3, activation='relu', border_mode='same')(pool4)
@@ -45,6 +49,7 @@ def get_unet(img_rows, img_cols):
     merge1 = merge([deconv1, conv8], mode='concat', concat_axis=1)
     conv11 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(merge1)
     conv12 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv11)
+    conv12 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv12)
 
     deconv2 = Deconvolution2D(256, 2, 2, output_shape=(batch_size, 256, img_rows/4, img_cols/4), subsample=(2, 2), activation='relu')(conv12)
     #deconv2 = UpSampling2D(size=(2,2))(conv12)
@@ -52,6 +57,7 @@ def get_unet(img_rows, img_cols):
     merge2 = merge([deconv2, conv6], mode='concat', concat_axis=1)
     conv13 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(merge2)
     conv14 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv13)
+    conv14 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv14)
 
     deconv3 = Deconvolution2D(128, 2, 2, output_shape=(batch_size, 128, img_rows/2, img_cols/2), subsample=(2, 2), activation='relu')(conv14)
     #deconv3 = UpSampling2D(size=(2,2))(conv14)
@@ -78,7 +84,7 @@ def get_unet(img_rows, img_cols):
     return model
 
 
-def make_history_file(history):
+def make_history_file(dir_path, hist):
     import csv
     f = open(os.path.join(dir_path,'hist.csv'), 'ab')
     csvWriter = csv.writer(f)
@@ -132,9 +138,7 @@ def train():
     hist = model.fit(imgs_train_raw, imgs_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
             validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint, checkpoint2, early_stopping])
 
-    make_history_file(hist)
-
-    model.save(os.path.join(dir_path,'result.hdf5'))
+    make_history_file(weight_path, hist)
 
     print 'Done.'
 

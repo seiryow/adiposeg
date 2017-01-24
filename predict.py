@@ -1,17 +1,14 @@
 import os
 import numpy as np
-from keras.models import load_model
 from ios import make_output_dir
-from train import batch_size
-
 
 output_path = 'output/'
-model_path = 'weights/unet.hdf5'
-#model_path = 'weights/2017-01-13/19-53-09/result.hdf5'
+#model_path = 'weights/unet.hdf5'
+#model_path = 'weights/2017-01-23/19-00-11/weights.005.hdf5'
+model_path = 'weights/2017-01-24/08-38-20/current.hdf5'
 
-
-def predict(model, y):
-    output = model.predict(y, batch_size=batch_size, verbose=1)
+def binary_predict(model, y):
+    output = model.predict(y, batch_size=16, verbose=1)
 
     output = np.round(output)
     output = output.astype('uint8')
@@ -65,6 +62,12 @@ def make_error_file(dir_path, imgs_test_name, y_true, y_pred):
         tmp.append(rand_err[x])
         csvWriter.writerow(tmp)
 
+    tmp = list()
+    tmp.append('mean')
+    tmp.append(np.mean(pix_err))
+    tmp.append(np.mean(rand_err))
+    csvWriter.writerow(tmp)
+
     f.close()
 
     print 'Wrote calculated error to the file.'
@@ -115,6 +118,8 @@ def visualize_ts(dir_path, imgs_test_name, imgs_true, imgs_pred):
 
 
 if __name__ == '__main__':
+    from keras.models import load_model
+
     print '*'*50
     print 'Loading and preprocessing test data...'
     print '*'*50
@@ -130,7 +135,7 @@ if __name__ == '__main__':
     print '*'*50
     print 'Predict labels on test data...'
     print '*'*50
-    pred_clabels = predict(model, imgs_test_raw)
+    pred_clabels = binary_predict(model, imgs_test_raw)
 
     print '*'*50
     print 'Calculate pixel error and rand error...'

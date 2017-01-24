@@ -3,67 +3,173 @@ import numpy as np
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from ios import make_output_dir
-from metrics import rand_error_to_patch
-from train import batch_size
-from predict import predict, clabels_to_img
+from metrics import rand_error_to_img, rand_error_to_patch
+from predict import binary_predict, clabels_to_img
 
 
 weight_path = 'weights/'
-model_path = 'weights/unet.hdf5'
+#model_path = 'weights/unet.hdf5'
+model_path = 'weights/2017-01-13/19-53-09/weights.005.hdf5'
 output_path = 'output/'
 
-nb_epoch = 2
+nb_epoch = 20
+
+
+def clabel_to_img(clabel, img_rows, img_cols):
+    img = np.zeros((1, img_rows, img_cols), dtype = 'uint8')
+
+    j = 0
+    k = 0
+    for l in xrange(clabel.shape[0]):
+        if clabel[l][0] == 0:
+            img[0][j][k] = 1
+        else:
+            img[0][j][k] = 0
+        k += 1
+        if k == img_cols:
+            k = 0
+            j += 1
+
+    return img
+
+
+def make_A_array(imgs_train_raw, imgs_train_label, train_pred):
+    from preprocess import categorize_label
+    from image import img_to_array, array_to_img, flip_img, rotate_img
+
+    rand_err = rand_error_to_patch(imgs_train_label, train_pred)
+    sort = np.sort(rand_err) # if sort [::-1]
+    index = np.argsort(sort)
+
+    total = index.shape[0] / 100 * 25
+    if total % 16 != 0:
+        total += 16 - (total % 16)              #for deconv
+    print 'total:', total
+
+    a_train_raw = np.zeros([total, 1, imgs_train_raw.shape[2], imgs_train_raw.shape[3]], dtype='float32')
+    a_train_label = np.zeros([total, train_pred.shape[1], 2], dtype='uint8')
+
+    i = 0
+    for x in xrange(total):
+        a_train_raw[x] = imgs_train_raw[index[x]]
+        a_train_label[x] = imgs_train_label[index[x]]
+
+    return a_train_raw, a_train_label
+
+
+def make_B_array(imgs_test_raw, imgs_test_label, test_pred):
+    import math
+    from image import img_to_array, array_to_img, flip_img, rotate_img
+
+    test_total = test_pred.shape[0]
+    prob = np.zeros([test_total], dtype="float32")
+    for x in xrange(test_total):
+        for i in xrange(test_pred.shape[1]):
+            prob[x] = math.fabs(test_pred[x][i][1] - 0.5)
+
+    sort = np.sort(prob)[::-1] # if sort [::-1] discent
+    index = np.argsort(sort)
+
+    btotal = index.shape[0] / 100 * 25
+    if btotal % 16 != 0:
+        btotal += 16 - (btotal % 16)              #for deconv
+    print 'btotal:', btotal
+
+    b_train_raw = np.zeros([btotal, 1, imgs_test_raw.shape[2], imgs_test_raw.shape[3]], dtype='float32')
+    b_train_label = np.zeros([btotal, test_pred.shape[1], 2], dtype='uint8')
+
+    i = 0
+    for x in xrange(btotal):
+        b_train_raw[x] = imgs_test_raw[index[x]]
+        b_train_label[x] = np.round(test_pred[index[x]])
+
+    return b_train_raw, b_train_label
 
 
 def retrain():
     print '*'*50
     print 'Loading train data...'
     print '*'*50
-    imgs_train_raw = np.load('train_raw.npy')
-    imgs_train_label = np.load('train_label.npy')
+    imgs_train_raw = np.load('retrain_raw.npy')
+    imgs_train_label = np.load('retrain_label.npy')
 
     imgs_test_raw = np.load('test_raw.npy')
     imgs_test_label = np.load('test_label.npy')
 
-    print '*'*50
-    print 'Loading the model...'
-    print '*'*50
-    model = load_model(model_path)
+    dir_path = make_output_dir(weight_path)
 
-    print '*'*50
-    print 'Predict labels on train data...'
-    print '*'*50
-    pred_clabels = predict(model, imgs_train_raw)
+    prev_path = os.path.join(dir_path, 'prev.hdf5')
+    current_path = os.path.join(dir_path, 'current.hdf5')
 
-    print '*'*50
-    print 'Calculate rand error...'
-    print '*'*50
-    rand_err = rand_error_to_patch(imgs_train_label, pred_clabels)
-    index = np.argsort(rand_err)
+    import shutil
+    shutil.copyfile(model_path, prev_path)
+    shutil.copyfile(model_path, current_path)
 
-    total = index.shape[0]
-    new_train_raw = np.zeros([total/2, 1, imgs_train_raw.shape[2], imgs_train_raw.shape[3]], dtype='float32')
-    new_train_label = np.zeros([total/2, imgs_train_label.shape[1], 2], dtype='uint8')
-    for x in xrange(total/2):
-        new_train_raw[x] = imgs_train_raw[index[x]]
-        new_train_label[x] = imgs_train_label[index[x]]
+    k = 5
+    prev_rand = 1
+    reject = 0
 
-    print '*'*50
-    print 'Fitting model...'
-    print '*'*50
-    dir_path = make_output_dir(output_path)
+    for x in xrange(k):
+        print 'loop:', x+1
 
-    ## After each epoch if validation_acc is best, save the model
-    model_checkpoint = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
-    checkpoint2 = ModelCheckpoint(os.path.join(weight_path, 'unet.hdf5'), monitor='val_acc', save_best_only=True)
-    early_stopping = EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
+        print '*'*50
+        print 'Loading the model...'
+        model = load_model(current_path)
 
-    ## train
-    history = model.fit(new_train_raw, new_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
-            validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint, checkpoint2, early_stopping])
+        print '*'*50
+        print 'Predict labels on retrain data...'
+        train_pred = binary_predict(model, imgs_train_raw)
 
-    model.save(os.path.join(dir_path,'result.hdf5'))
+        print '*'*50
+        print 'Calculate rand error...'
+        current_rand = np.mean(rand_error_to_img(imgs_train_label, train_pred))
+        print 'current_rand:', current_rand
 
+        if prev_rand < current_rand:
+            reject += 1
+            print 'prev_rand:', prev_rand, 'current_rand:', current_rand
+            print 'Re-traing rejected. reject:', reject
+            model = load_model(prev_path)
+            train_pred = binary_predict(model, imgs_train_raw)
+        else:
+            prev_rand = current_rand
+            model.save(prev_path)
+
+        print '*'*50
+        print 'Part A'
+        print '*'*50
+
+        a_train_raw, a_train_label = make_A_array(imgs_train_raw, imgs_train_label, train_pred)
+
+        print '*'*50
+        print 'Fitting model...'
+        print '*'*50
+
+        ## After each epoch if validation_acc is best, save the model
+        checkpoint = ModelCheckpoint(current_path, monitor='val_acc', save_best_only=True)
+        early_stopping = EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
+
+        ## train
+        hist = model.fit(a_train_raw, a_train_label, batch_size = 16, nb_epoch=nb_epoch, verbose=1, shuffle=True,
+                validation_data=[imgs_test_raw, imgs_test_label], callbacks=[checkpoint, early_stopping])
+
+        print '*'*50
+        print 'Part B'
+        print '*'*50
+
+        model = load_model(current_path)
+        test_pred = model.predict(imgs_test_raw, batch_size = 16, verbose=1)
+        b_train_raw, b_train_label = make_B_array(imgs_test_raw, imgs_test_label, test_pred)
+
+        print '*'*50
+        print 'Fitting model...'
+        print '*'*50
+
+        ## train
+        hist = model.fit(b_train_raw, b_train_label, batch_size = 16, nb_epoch=nb_epoch, verbose=1, shuffle=True,
+                validation_data=[imgs_test_raw, imgs_test_label], callbacks=[checkpoint, early_stopping])
+
+        model.save(current_path)
 
 if __name__ == '__main__':
     retrain()

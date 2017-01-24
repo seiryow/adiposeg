@@ -17,15 +17,14 @@ def flatten_img(y):
 
 
 def flatten_patch(y):
-    tmp = np.zeros([y.shape[0]],dtype='uint8')
+    tmp = np.zeros([y.shape[0]], dtype='uint8')
 
     l = 0
     for x in xrange(y.shape[0]):
         if y[x][0] == 1:
-            tmp[l] = 0
+            tmp[x] = 0
         else:
-            tmp[l] = 1
-        l += 1
+            tmp[x] = 1
 
     return tmp
 
@@ -59,7 +58,7 @@ def rand_error_to_img(y_true, y_pred):
 def rand_error_to_patch(y_true, y_pred):
     from sklearn.metrics.cluster import adjusted_rand_score
 
-    loss = np.zeros([y_true.shape[0]],dtype='float32')
+    loss = np.zeros([y_true.shape[0]], dtype='float32')
 
     for x in xrange(y_true.shape[0]):
         flatten_true = flatten_patch(y_true[x])

@@ -73,7 +73,7 @@ def make_image_array(path, img_type, data_augument=False):
     tmp_list = list()
 
     for file in file_list:
-        img = load_img(os.path.join(file_path, file), grayscale=True, target_size=(img_rows,img_cols))
+        img = load_img(os.path.join(file_path, file), grayscale=True, target_size=(img_rows, img_cols))
         tmp_list.append(img)
 
         if data_augument == True:
@@ -152,6 +152,13 @@ if __name__ == '__main__':
     imgs_train_raw, tmp_name = make_image_array(train_path, img_type='raw', data_augument=data_augument)
     imgs_train_label, tmp_name = make_image_array(train_path, img_type='label', data_augument=data_augument)
 
+    if data_augument == True:
+        imgs_retrain_raw, tmp_name = make_image_array(train_path, img_type='raw', data_augument=False)
+        imgs_retrain_label, tmp_name = make_image_array(train_path, img_type='label', data_augument=False)
+    else:
+        imgs_retrain_raw = imgs_train_raw
+        imgs_retrain_label = imgs_train_label
+
     print '*'*50
     print 'Load test images...'
     print '*'*50
@@ -168,6 +175,8 @@ if __name__ == '__main__':
 
     np.save('train_raw.npy', imgs_train_raw)
     np.save('train_label.npy', imgs_train_label)
+    np.save('retrain_raw.npy', imgs_retrain_raw)
+    np.save('retrain_label.npy', imgs_retrain_label)
     np.save('test_raw.npy', imgs_test_raw)
     np.save('test_label.npy', imgs_test_label)
     np.save('test_name.npy', tmp_name)
