@@ -15,24 +15,6 @@ output_path = 'output/'
 nb_epoch = 20
 
 
-def clabel_to_img(clabel, img_rows, img_cols):
-    img = np.zeros((1, img_rows, img_cols), dtype = 'uint8')
-
-    j = 0
-    k = 0
-    for l in xrange(clabel.shape[0]):
-        if clabel[l][0] == 0:
-            img[0][j][k] = 1
-        else:
-            img[0][j][k] = 0
-        k += 1
-        if k == img_cols:
-            k = 0
-            j += 1
-
-    return img
-
-
 def make_A_array(imgs_train_raw, imgs_train_label, train_pred):
     from preprocess import categorize_label
     from image import img_to_array, array_to_img, flip_img, rotate_img
