@@ -4,8 +4,6 @@ from ios import make_output_dir
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from metrics import rand_error_to_patch
-from predict import predict
-
 
 weight_path = 'weights/'
 #model_path = 'weights/2017-01-10/03-11-13/weights.009.hdf5'
@@ -106,8 +104,8 @@ def train():
     imgs_train_raw = np.load('train_raw.npy')
     imgs_train_label = np.load('train_label.npy')
 
-    imgs_test_raw = np.load('test_raw.npy')
-    imgs_test_label = np.load('test_label.npy')
+    val_test_raw = np.load('val_test_raw.npy')
+    val_test_label = np.load('val_test_label.npy')
 
     print '*'*50
     print 'Creating and compiling the model...'
@@ -136,7 +134,7 @@ def train():
 
     ## train
     hist = model.fit(imgs_train_raw, imgs_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
-            validation_data=[imgs_test_raw, imgs_test_label], callbacks=[model_checkpoint, checkpoint2, early_stopping])
+            validation_data=[val_test_raw, val_test_label], callbacks=[model_checkpoint, checkpoint2, early_stopping])
 
     make_history_file(weight_path, hist)
 

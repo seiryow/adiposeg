@@ -4,8 +4,8 @@ from ios import make_output_dir
 
 output_path = 'output/'
 #model_path = 'weights/unet.hdf5'
-#model_path = 'weights/2017-01-23/19-00-11/weights.005.hdf5'
-model_path = 'weights/2017-01-24/08-38-20/current.hdf5'
+#model_path = 'weights/2017-01-25/22-37-24/weights.005.hdf5'
+model_path = 'weights/2017-01-26/16-01-52/current.hdf5'
 
 def binary_predict(model, y):
     output = model.predict(y, batch_size=16, verbose=1)
