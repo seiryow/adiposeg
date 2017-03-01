@@ -3,9 +3,9 @@ import numpy as np
 from ios import make_output_dir
 
 output_path = 'output/'
-#model_path = 'weights/unet.hdf5'
-#model_path = 'weights/2017-01-25/22-37-24/weights.005.hdf5'
-model_path = 'weights/2017-01-26/16-01-52/current.hdf5'
+model_path = 'weights/unet.hdf5'
+#model_path = 'weights/2017-02-23/08-25-17/current.hdf5'
+
 
 def binary_predict(model, y):
     output = model.predict(y, batch_size=16, verbose=1)

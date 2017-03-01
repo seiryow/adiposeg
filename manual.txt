@@ -1,0 +1,122 @@
+Kerasによる脂肪細胞セグメンテーションプログラム.
+
+■ 動作環境とインストール
+最低でも以下のインストールが必要, Theanoをbackendに使うと多分バグる.
+・ CUDA
+・ cuDNN
+・ numpy,scipy
+・ scikit
+・ PIL
+・ HDF5 and h5py
+・ Tensorflow
+・ Keras
+
+インストールはTensorflow -> Kerasの順に.
+https://www.tensorflow.org/install/install_linux
+https://keras.io/#installation
+多分「Tensorflow Ubuntu インストール GPU」とか
+「Keras Tensorflow インストール」とかで検索すれば解説が出てくるのでそれ見て頑張って.
+
+■ ディレクトリ構成
+adiposoft/
+  input/
+    入力画像
+  output/
+    出力
+  weights/
+    学習した重み
+
+  preprocess.py
+  train.py
+  retrain.py
+  predict.py
+    実際に実行する4ファイル
+
+  ios.py
+  image.py
+  metrics.py
+    上のファイルから呼び出される関数をまとめたもの
+
+■　使い方
+1. /input/train/, /input/test/に画像を入れる
+2. preprocess.pyを実行
+3. train.pyを実行
+4. Self Trainingによる再学習を実行したい場合, retrain.pyを実行.
+5. predict.pyを実行すると /output/日/時/に結果が出力される.
+
+■　各pythonファイルの詳細
+! Warning !
+  あまりに突貫作業で作ったので自分自身よくわからない代物と化している.
+  以下, 薮崎が把握できるかぎりの仕様と注意点を述べる。
+
+・preprocess.py
+  概要: 高速なロードのため, 入力画像を読み込み, npyファイルに格納する.
+  入力: /input/train, /input/test 下にある画像
+  出力:
+    ・ train_raw.npy       訓練データの画像
+    ・ train_label.npy     訓練データのラベル
+    ・ retrain_raw.npy     再訓練用に用いるデータの画像. train_raw.npyのaugmentationなし版.
+    ・ retrain_label.npy   再訓練用に用いるデータのラベル. train_label.npyのaugmentationなし版.
+    ・ test_raw.npy        テストデータの画像
+    ・ test_label.npy      テストデータのラベル
+    ・ test_name.npy       テストデータのファイル名. 出力時に使用.
+    ・ val_raw.npy         バリデーションデータの画像
+    ・ val_label.npy       バリデーションデータのラベル
+  注意:
+    ・入力画像のサイズは512*512に揃えておくのが懸命.
+    ・raw画像とlabel画像のファイル名は揃えること.
+    ・変数data_augumentを変えることでaugmentationなしの訓練データを作成可能.
+    ・/input/testにおいた画像のうち、
+      ランダムに選んだ半分がバリデーションデータに、残り半分がテストデータになる.
+    ・Kerasの仕様で,バイナリラベルは[, 2]のような形で与えないといけないらしい.
+     そのように変換・逆変換しているのがcategorize/decategorizeと考えてもらえばいい.
+
+・train.py
+  概要: U-netの構築と訓練をする.
+  入力: train_raw.npy, train_label.npy, val_raw.npy, val_label.npy
+  出力:
+    ・weights/unet.hdf5        学習した重み
+    ・weights/日/時/unet.hdf5    学習した重み、上のコピー
+    ・weights/日/時/hist.csv     epochごとのloss,accの記録
+  注意:
+    ・tensorflowをバックエンドに使うと逆畳み込み層のバッチサイズは固定する必要があるらしい.
+     現在はバッチサイズを16にしているため,訓練時のバッチサイズを16の倍数以外に変更するとバグる.
+    ・deconvをupsampling+convで置き換えるとバッチサイズの制約がなくなるものの、精度がかなり落ちる
+
+・retrain.py
+  概要: Self TrainingによりU-netの再訓練を行う.
+  入力: retrain_raw.npy, retrain_label.npy,
+        test_raw.npy, test_label.npy
+        val_raw.npy, val_label.npy
+        weights/unet.hdf5
+  出力:
+    ・weights/unet.hdf5        学習した重み
+    ・weights/日/時/unet.hdf5    学習した重み、上のコピー
+  注意:
+    ・ゴミの中のゴミみたいなプログラム, 一番最後に作ったということから察してほしい.
+    ・loopによりループ数を、epochにより一回の再学習におけるエポック数を変えられる.
+     ただしあまり大きくするとメモリがなくなるKerasの仕様が発動するので注意.
+    ・本来なら他のファイルから呼ぶべき関数もファイルの中に書いてある.
+     これは全体の設計をミスったが故に微妙な変更を加える必要が生じたため.
+    ・batch_sizeを16の倍数以外にするとバグる(再掲)
+    ・make_retrain_arrayの中でパッチサンプリングを規定している.
+    ・hist.csvはループごとに出力するのがめんどくさかったから出してない.
+     合計エポック数は人力で数える.力こそパワー.
+
+・predict.py
+  概要: 訓練したU-netにより予測を行う.
+  入力: test_raw.npy, test_label.npy , test_name.npy
+        weights/unet.hdf5
+  出力:
+    ・output/日/時/img.png     セグメンテーション結果
+    ・output/日/時/error.csv   エラー値
+    ・output/日/時/ts/img.png  セグメンテーション結果と正解との誤差を表した画像
+  注意:
+    ・確率はbinary_predictで丸めている.
+
+・ios.py
+  概要: ファイルの入出力関係の関数が入っている.
+・image.py
+  概要: 画像処理関係の関数が入っている.
+・metrics.py
+  概要: 評価指標関係の関数が入っている.

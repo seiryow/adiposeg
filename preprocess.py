@@ -9,12 +9,18 @@ img_cols = 512
 
 data_augument = True
 
+## in this function binary label will be converted for keras
 def categorize_label(imgs, data_augument=False):
     clabels = np.zeros([imgs.shape[0], 1*imgs.shape[2]*imgs.shape[3], 2], dtype='uint8')
 
     i = 0
     for img_array in imgs:
         if data_augument == True and int(i/16) % 12 !=0:
+            # this mention is used for speeding up,
+            # but may cause some bugs.
+            # if you change a data augumentation method
+            # and this program does not work,
+            # first of all you doubt here.
             index = i - 16 * (int(i/16) % 12)
             clabels[i] = clabels[index]
         else:
@@ -35,7 +41,7 @@ def categorize_label(imgs, data_augument=False):
 
     return clabels
 
-
+## load imgs and return img list
 def get_img_list(file_path, file_list, img_type, data_augument = False):
     from image import load_img
 
@@ -52,8 +58,8 @@ def get_img_list(file_path, file_list, img_type, data_augument = False):
 
     return tmp_list
 
-
-def get_divided_array(imgs, tmp_list):
+## divide each img in tmp_list and return them in the form of array
+def get_divided_img_array(imgs, tmp_list):
     from image import img_to_array, divide_img
 
     i=0
@@ -82,7 +88,7 @@ def data_augumentation(img, img_type):
     return augmentated_list
 
 
-def make_validation_list(tmp_raw_list, tmp_label_list, tmp_name_list):
+def make_test_and_val_list(tmp_raw_list, tmp_label_list, tmp_name_list):
     import random
 
     total = len(tmp_raw_list)
@@ -126,7 +132,7 @@ def make_train_array(train_path, data_augument = False):
     total = len(tmp_raw_list)
     imgs_raw = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
 
-    imgs_raw = get_divided_array(imgs_raw, tmp_raw_list)
+    imgs_raw = get_divided_img_array(imgs_raw, tmp_raw_list)
 
     print '*'*30
     print 'make train_label array...'
@@ -139,7 +145,7 @@ def make_train_array(train_path, data_augument = False):
     total = len(tmp_label_list)
     imgs_label = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
 
-    imgs_label = get_divided_array(imgs_label, tmp_label_list)
+    imgs_label = get_divided_img_array(imgs_label, tmp_label_list)
 
     imgs_label = categorize_label(imgs_label, data_augument=data_augument)
 
@@ -167,7 +173,7 @@ def make_test_array(test_path):
 
     tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augument=False)
 
-    test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list = make_validation_list(tmp_raw_list, tmp_label_list, name_list)
+    test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list = make_test_and_val_list(tmp_raw_list, tmp_label_list, name_list)
 
     total_test = len(test_raw_list)*16
     test_raw = np.zeros([total_test, 1, img_rows/4, img_cols/4], dtype='float32')
@@ -177,10 +183,10 @@ def make_test_array(test_path):
     val_raw = np.zeros([total_val, 1, img_rows/4, img_cols/4], dtype='float32')
     val_label = np.zeros([total_val, 1, img_rows/4, img_cols/4], dtype='float32')
 
-    test_raw = get_divided_array(test_raw, test_raw_list)
-    test_label = get_divided_array(test_label, test_label_list)
-    val_raw = get_divided_array(val_raw, val_raw_list)
-    val_label = get_divided_array(val_label, val_label_list)
+    test_raw = get_divided_img_array(test_raw, test_raw_list)
+    test_label = get_divided_img_array(test_label, test_label_list)
+    val_raw = get_divided_img_array(val_raw, val_raw_list)
+    val_label = get_divided_img_array(val_label, val_label_list)
 
     test_label = categorize_label(test_label, data_augument=False)
     val_label = categorize_label(val_label, data_augument=False)
@@ -233,7 +239,6 @@ if __name__ == '__main__':
     imgs_train_raw, imgs_train_label = make_train_array(train_path, data_augument)
 
     imgs_retrain_raw, imgs_retrain_label = make_train_array(train_path, data_augument=False)
-
 
     print '*'*50
     print 'Load test images...'

@@ -11,7 +11,8 @@ weight_path = 'weights/'
 model_load_flag = 0
 
 batch_size = 16 ## batch_size must be smaller than num of samples
-nb_epoch = 10
+nb_epoch = 20
+
 
 def get_unet(img_rows, img_cols):
     from keras.models import Model
@@ -98,6 +99,8 @@ def make_history_file(dir_path, hist):
 
 
 def train():
+    import shutil
+
     print '*'*50
     print 'Loading train data...'
     print '*'*50
@@ -128,15 +131,17 @@ def train():
     dir_path = make_output_dir(weight_path)
 
     ## After each epoch if validation_acc is best, save the model
-    model_checkpoint = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
-    checkpoint2 = ModelCheckpoint(os.path.join(weight_path, 'unet.hdf5'), monitor='val_acc', save_best_only=True)
+
+    checkpoint = ModelCheckpoint(os.path.join(weight_path, 'unet.hdf5'), monitor='val_acc', save_best_only=True)
+    #each_cp = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
     early_stopping = EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
 
     ## train
     hist = model.fit(imgs_train_raw, imgs_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
-            validation_data=[val_test_raw, val_test_label], callbacks=[model_checkpoint, checkpoint2, early_stopping])
+            validation_data=[val_test_raw, val_test_label], callbacks=[checkpoint, early_stopping])
 
-    make_history_file(weight_path, hist)
+    shutil.copyfile(os.path.join(weight_path, 'unet.hdf5'), os.path.join(dir_path, 'unet.hdf5'))
+    make_history_file(dir_path, hist)
 
     print 'Done.'
 

@@ -8,11 +8,12 @@ from metrics import rand_error_to_img, rand_error_to_patch, pixel_error_to_img
 from predict import binary_predict, clabels_to_img
 
 weight_path = 'weights/'
-#model_path = 'weights/unet.hdf5'
-model_path = 'weights/2017-01-25/22-37-24/weights.005.hdf5'
+model_path = 'weights/unet.hdf5'
+#model_path = 'weights/2017-02-23/05-05-54/weights.005.hdf5'
 output_path = 'output/'
 
 nb_epoch = 10
+loop = 7
 
 def clabel_to_img(clabel, img_rows, img_cols):
     img = np.zeros((1, img_rows, img_cols), dtype = 'uint8')
@@ -148,9 +149,9 @@ def make_retrain_array(imgs_test_raw, imgs_test_label, test_pred):
             tmp += math.fabs(test_pred[x][i][1] - 0.5)
         prob[x] = tmp/size
 
-    sort = np.sort(prob)
-    sort -= sort[0]
-    sort /= sort[sort.shape[0]-1]
+    #sort = np.sort(prob)
+    #sort -= sort[0]
+    #sort /= sort[sort.shape[0]-1]
 
     index = np.argsort(prob)
 
@@ -181,6 +182,8 @@ def make_retrain_array(imgs_test_raw, imgs_test_label, test_pred):
 
 
 def retrain():
+    import shutil
+
     print '*'*50
     print 'Loading train data...'
     print '*'*50
@@ -196,16 +199,16 @@ def retrain():
     dir_path = make_output_dir(weight_path)
 
     prev_path = os.path.join(dir_path, 'prev.hdf5')
-    current_path = os.path.join(dir_path, 'current.hdf5')
+    current_path = os.path.join(dir_path, 'unet.hdf5')
 
-    import shutil
     shutil.copyfile(model_path, current_path)
 
-    k = 8
     prev_rand = 1
     reject = 0
 
-    for x in xrange(k):
+    checkpoint = ModelCheckpoint(current_path, monitor='val_acc', save_best_only=True)
+
+    for x in xrange(loop):
         print '*'*50
         print 'Loop:', x
         print '*'*50
@@ -229,6 +232,7 @@ def retrain():
         test_rand = np.mean(rand_error_to_img(imgs_test_label, test_pred))
         print '(test_pix, test_rand):', (test_pix, test_rand)
 
+        # adopt judge
         if prev_rand < current_rand:
             reject += 1
             print 'prev_rand:', prev_rand, 'current_rand:', current_rand
@@ -245,8 +249,6 @@ def retrain():
         print 'Fitting model...'
         print '*'*50
 
-        checkpoint = ModelCheckpoint(current_path, monitor='val_acc', save_best_only=True)
-
         new_train_raw = np.concatenate((imgs_retrain_raw, new_train_raw), axis=0)
         new_train_label = np.concatenate((imgs_retrain_label, new_train_label), axis=0)
 
@@ -254,7 +256,8 @@ def retrain():
         hist = model.fit(new_train_raw, new_train_label, batch_size = 16, nb_epoch=nb_epoch, verbose=1, shuffle=True,
                 validation_data=[val_test_raw, val_test_label], callbacks=[checkpoint])
 
-        if x == k-1:
+        ## adopt judge
+        if x == loop-1:
             print '*'*50
             print 'Predict labels on retrain data...'
             val_pred = binary_predict(model, val_test_raw)
@@ -277,6 +280,9 @@ def retrain():
             test_pix = np.mean(pixel_error_to_img(imgs_test_label, test_pred))
             test_rand = np.mean(rand_error_to_img(imgs_test_label, test_pred))
             print '(test_pix, test_rand):', (test_pix, test_rand)
+
+    shutil.copyfile(current_path, os.path.join(weight_path,'unet.hdf5'))
+    os.remove(prev_path)
 
 if __name__ == '__main__':
     retrain()
