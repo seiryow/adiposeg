@@ -110,6 +110,9 @@ def gamma_img(img_list, img_type):
     tmp_list = list()
     size = len(img_list)
 
+    time = 4
+    delta = 2.5 / time
+
     if img_type == 'raw':
         for x in xrange(size):
             tmp_list.append(img_list[x])
@@ -118,15 +121,14 @@ def gamma_img(img_list, img_type):
             tmp = img_to_array(img_list[x]) ** gamma / 255
             tmp_list.append(array_to_img(tmp, scale=True))
 
-            gamma = 0.25
-            while gamma <= 2.5:
+            for t in xrange(time):
+                gamma = delta * (t + 1)
                 tmp = img_to_array(img_list[x]) ** gamma / 255
                 tmp_list.append(array_to_img(tmp, scale=True))
-                gamma += 0.25
 
     if img_type == 'label':
         for x in xrange(size):
-            for y in xrange(12):
+            for y in xrange(time + 2):
                 tmp_list.append(img_list[x])
 
     return tmp_list

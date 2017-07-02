@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from ios import check_file_list
+import sys
 
 input_path = 'input/'
 
@@ -232,7 +233,11 @@ if __name__ == '__main__':
     print '*'*50
     print 'Load training images...'
     print '*'*50
-    train_path = os.path.join(input_path,'train/')
+    traindir = sys.argv[1]+'/'
+    test_path = 'test'
+    if len(sys.argv) > 2:
+        test_path = sys.argv[2]
+    train_path = os.path.join(traindir, 'train')
     if check_file_list(train_path)==False:
         raise ValueError('Labels do not match with raws.')
 
@@ -243,7 +248,6 @@ if __name__ == '__main__':
     print '*'*50
     print 'Load test images...'
     print '*'*50
-    test_path = os.path.join(input_path,'test/')
     if check_file_list(test_path)==False:
         raise ValueError('Labels do not match with raws.')
 
@@ -253,15 +257,15 @@ if __name__ == '__main__':
 
     print 'Save loaded images to numpy files...'
 
-    np.save('train_raw.npy', imgs_train_raw)
-    np.save('train_label.npy', imgs_train_label)
-    np.save('retrain_raw.npy', imgs_retrain_raw)
-    np.save('retrain_label.npy', imgs_retrain_label)
-    np.save('test_raw.npy', imgs_test_raw)
-    np.save('test_label.npy', imgs_test_label)
-    np.save('test_name.npy', imgs_test_name)
-    np.save('val_test_raw.npy', val_test_raw)
-    np.save('val_test_label.npy', val_test_label)
+    np.save(os.path.join(traindir, 'train_raw.npy'), imgs_train_raw)
+    np.save(os.path.join(traindir, 'train_label.npy'), imgs_train_label)
+    np.save(os.path.join(traindir, 'retrain_raw.npy'), imgs_retrain_raw)
+    np.save(os.path.join(traindir, 'retrain_label.npy'), imgs_retrain_label)
+    np.save(os.path.join(traindir, 'test_raw.npy'), imgs_test_raw)
+    np.save(os.path.join(traindir, 'test_label.npy'), imgs_test_label)
+    np.save(os.path.join(traindir, 'test_name.npy'), imgs_test_name)
+    np.save(os.path.join(traindir, 'val_test_raw.npy'), val_test_raw)
+    np.save(os.path.join(traindir, 'val_test_label.npy'), val_test_label)
 
     print 'imgs_train_raw:', imgs_train_raw.shape
     print 'imgs_train_label:', imgs_train_label.shape
