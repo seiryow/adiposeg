@@ -12,7 +12,7 @@ weight_path = 'weights/'
 model_load_flag = 0
 
 batch_size = 16 ## batch_size must be smaller than num of samples
-nb_epoch = 10
+nb_epoch = 25
 
 
 def get_unet(img_rows, img_cols):
