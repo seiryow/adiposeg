@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import sys
 from ios import make_output_dir
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -10,8 +11,8 @@ weight_path = 'weights/'
 
 model_load_flag = 0
 
-batch_size = 16 ## batch_size must be smaller than num of samples
-nb_epoch = 20
+batch_size = 3 ## batch_size must be smaller than num of samples
+nb_epoch = 1
 
 
 def get_unet(img_rows, img_cols):
@@ -19,6 +20,8 @@ def get_unet(img_rows, img_cols):
     from keras.layers.core import Reshape, Permute, Activation
     from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
     from keras.layers.normalization import BatchNormalization
+    from keras import backend as K
+    K.set_image_dim_ordering('th')
 
     inputs = Input((1, img_rows, img_cols))
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
@@ -98,17 +101,19 @@ def make_history_file(dir_path, hist):
     f.close()
 
 
-def train():
+def train(traindir):
+    weight_path = traindir + 'weights'
     import shutil
+    from keras.utils import plot_model
 
     print '*'*50
     print 'Loading train data...'
     print '*'*50
-    imgs_train_raw = np.load('train_raw.npy')
-    imgs_train_label = np.load('train_label.npy')
+    imgs_train_raw = np.load( traindir + 'train_raw.npy')
+    imgs_train_label = np.load( traindir + 'train_label.npy')
 
-    val_test_raw = np.load('val_test_raw.npy')
-    val_test_label = np.load('val_test_label.npy')
+    val_test_raw = np.load( traindir + 'val_test_raw.npy')
+    val_test_label = np.load( traindir + 'val_test_label.npy')
 
     print '*'*50
     print 'Creating and compiling the model...'
@@ -122,6 +127,8 @@ def train():
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     else:
         model = load_model(model_path)
+
+    plot_model(model, to_file= traindir + 'model.png')
 
     print '*'*50
     print 'Fitting model...'
@@ -146,4 +153,5 @@ def train():
     print 'Done.'
 
 if __name__ == '__main__':
-    train()
+    traindir = sys.argv[1]+'/'
+    train(traindir)
