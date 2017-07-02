@@ -103,6 +103,7 @@ def make_history_file(dir_path, hist):
 
 def train(traindir):
     weight_path = os.path.join(traindir, 'weights')
+    # weight_path = traindir + 'weights'
     import shutil
     from keras.utils import plot_model
 
@@ -114,6 +115,13 @@ def train(traindir):
 
     val_test_raw = np.load( os.path.join(traindir, 'val_test_raw.npy'))
     val_test_label = np.load( os.path.join(traindir, 'val_test_label.npy'))
+
+    # imgs_train_raw = np.load( traindir + 'train_raw.npy')
+    # imgs_train_label = np.load( traindir + 'train_label.npy')
+
+    # val_test_raw = np.load( traindir + 'val_test_raw.npy')
+    # val_test_label = np.load( traindir + 'val_test_label.npy')
+
 
     print '*'*50
     print 'Creating and compiling the model...'
@@ -129,6 +137,7 @@ def train(traindir):
         model = load_model(model_path)
 
     plot_model(model, to_file= os.path.join(traindir, 'model.png'))
+    # plot_model(model, to_file= traindir + 'model.png')
 
     print '*'*50
     print 'Fitting model...'

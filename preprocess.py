@@ -248,6 +248,7 @@ if __name__ == '__main__':
     print '*'*50
     print 'Load test images...'
     print '*'*50
+    test_path = './test/'
     if check_file_list(test_path)==False:
         raise ValueError('Labels do not match with raws.')
 
@@ -256,6 +257,7 @@ if __name__ == '__main__':
     print '*'*50
 
     print 'Save loaded images to numpy files...'
+
 
     np.save(os.path.join(traindir, 'train_raw.npy'), imgs_train_raw)
     np.save(os.path.join(traindir, 'train_label.npy'), imgs_train_label)

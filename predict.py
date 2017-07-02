@@ -126,6 +126,9 @@ if __name__ == '__main__':
     traindir = sys.argv[1]
     output_path = os.path.join(traindir, 'output')
     model_path = os.path.join(traindir, 'weights', 'unet.hdf5')
+    # traindir = sys.argv[1]+'/'
+    # output_path = traindir + 'output/'
+    # model_path = traindir + 'weights/unet.hdf5'
 
     print '*'*50
     print 'Loading and preprocessing test data...'
@@ -133,6 +136,9 @@ if __name__ == '__main__':
     imgs_test_raw = np.load(os.path.join(traindir, 'test_raw.npy'))
     imgs_test_label = np.load(os.path.join(traindir, 'test_label.npy'))
     imgs_test_name = np.load(os.path.join(traindir, 'test_name.npy'))
+    # imgs_test_raw = np.load(traindir + 'test_raw.npy')
+    # imgs_test_label = np.load(traindir + 'test_label.npy')
+    # imgs_test_name = np.load(traindir + 'test_name.npy')
 
     print '*'*50
     print 'Loading built model and trained weights...'
