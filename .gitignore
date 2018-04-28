@@ -1,2 +1,5 @@
 train
 *.pyc
+*.swp
+*.swo
+*.npy

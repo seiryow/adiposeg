@@ -5,6 +5,7 @@ from ios import make_output_dir
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from metrics import rand_error_to_patch
+import argparse
 
 weight_path = 'weights/'
 #model_path = 'weights/2017-01-10/03-11-13/weights.009.hdf5'
@@ -148,13 +149,14 @@ def train(traindir):
 
     ## After each epoch if validation_acc is best, save the model
 
-    checkpoint = ModelCheckpoint(os.path.join(weight_path, 'unet.hdf5'), monitor='val_acc', save_best_only=True)
-    #each_cp = ModelCheckpoint(os.path.join(dir_path, 'weights.{epoch:03d}.hdf5'), monitor='val_acc', save_best_only=True)
-    early_stopping = EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
+    checkpoint = ModelCheckpoint(os.path.join(weight_path, 'unet.hdf5'),
+                                 monitor='val_acc', save_best_only=True, verbose=1)
+    early_stopping = EarlyStopping(monitor='val_acc', patience=5, verbose=1, mode='auto')
 
     ## train
-    hist = model.fit(imgs_train_raw, imgs_train_label, batch_size = batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
-            validation_data=[val_test_raw, val_test_label], callbacks=[checkpoint, early_stopping])
+    hist = model.fit(imgs_train_raw, imgs_train_label, batch_size=batch_size, epochs=nb_epoch,
+                     verbose=1, shuffle=True, validation_data=[val_test_raw, val_test_label],
+                     callbacks=[checkpoint, early_stopping])
 
     shutil.copyfile(os.path.join(weight_path, 'unet.hdf5'), os.path.join(dir_path, 'unet.hdf5'))
     make_history_file(dir_path, hist)
@@ -162,5 +164,7 @@ def train(traindir):
     print 'Done.'
 
 if __name__ == '__main__':
-    traindir = sys.argv[1]+'/'
-    train(traindir)
+    parser = argparse.ArgumentParser(description='Preprocess test and train images')
+    parser.add_argument('dataset_dir', type=str, help='Directory containing the dataset')
+    args = parser.parse_args()
+    train(args.dataset_dir)

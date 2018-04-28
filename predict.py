@@ -2,44 +2,15 @@ import os
 import numpy as np
 from ios import make_output_dir
 import sys
-
-
-output_path = 'output/'
-model_path = 'weights/unet.hdf5'
-#model_path = 'weights/2017-02-23/08-25-17/current.hdf5'
+import argparse
 
 
 def binary_predict(model, y):
     output = model.predict(y, batch_size=16, verbose=1)
-
-    output = np.round(output)
-    output = output.astype('uint8')
-
     return output
 
-
 def clabels_to_img(clabels, img_rows, img_cols):
-    total = clabels.shape[0]
-    imgs = np.zeros((total, 1, img_rows/4, img_cols/4), dtype = 'uint8')
-
-    for i in xrange(total):
-        j = 0
-        k = 0
-        for l in xrange(clabels.shape[1]):
-            if clabels[i][l][0] == 0:
-                imgs[i][0][j][k] = 1
-            else:
-                imgs[i][0][j][k] = 0
-            k += 1
-            if k == img_cols/4:
-                k = 0
-                j += 1
-
-        if (i+1) % 1000 == 0 or i+1 == total:
-            print 'Decategorized', i+1, '/', total
-
-    return imgs
-
+    return clabels.argmax(axis=-1).reshape((clabels.shape[0], 1, img_rows / 4, img_cols / 4))
 
 def make_error_file(dir_path, imgs_test_name, y_true, y_pred):
     import csv
@@ -122,13 +93,13 @@ def visualize_ts(dir_path, imgs_test_name, imgs_true, imgs_pred):
 if __name__ == '__main__':
     from keras.models import load_model
 
-    test_path = 'test/'
-    traindir = sys.argv[1]
+    parser = argparse.ArgumentParser(description='Preprocess test and train images')
+    parser.add_argument('dataset_dir', type=str, help='Directory containing the dataset')
+    args = parser.parse_args()
+
+    traindir = args.dataset_dir
     output_path = os.path.join(traindir, 'output')
     model_path = os.path.join(traindir, 'weights', 'unet.hdf5')
-    # traindir = sys.argv[1]+'/'
-    # output_path = traindir + 'output/'
-    # model_path = traindir + 'weights/unet.hdf5'
 
     print '*'*50
     print 'Loading and preprocessing test data...'
@@ -136,9 +107,6 @@ if __name__ == '__main__':
     imgs_test_raw = np.load(os.path.join(traindir, 'test_raw.npy'))
     imgs_test_label = np.load(os.path.join(traindir, 'test_label.npy'))
     imgs_test_name = np.load(os.path.join(traindir, 'test_name.npy'))
-    # imgs_test_raw = np.load(traindir + 'test_raw.npy')
-    # imgs_test_label = np.load(traindir + 'test_label.npy')
-    # imgs_test_name = np.load(traindir + 'test_name.npy')
 
     print '*'*50
     print 'Loading built model and trained weights...'

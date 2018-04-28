@@ -2,31 +2,11 @@ import numpy as np
 
 
 def flatten_img(y):
-    tmp = np.zeros([y.shape[0]*y.shape[1]],dtype='uint8')
-
-    l = 0
-    for x in xrange(y.shape[0]):
-        for k in xrange(y.shape[1]):
-            if y[x][k][0] == 1:
-                tmp[l] = 0
-            else:
-                tmp[l] = 1
-            l += 1
-
-    return tmp
+    return y.argmax(axis=-1).flatten()
 
 
 def flatten_patch(y):
-    tmp = np.zeros([y.shape[0]], dtype='uint8')
-
-    l = 0
-    for x in xrange(y.shape[0]):
-        if y[x][0] == 1:
-            tmp[x] = 0
-        else:
-            tmp[x] = 1
-
-    return tmp
+    return y.argmax(axis=-1).flatten()
 
 
 def pixel_error_to_img(y_true, y_pred):

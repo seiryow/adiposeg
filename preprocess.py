@@ -2,60 +2,29 @@ import os
 import numpy as np
 from ios import check_file_list
 import sys
-
-input_path = 'input/'
+import argparse
 
 img_rows = 512
 img_cols = 512
 
-data_augument = True
+data_augment = True
 
 ## in this function binary label will be converted for keras
-def categorize_label(imgs, data_augument=False):
-    clabels = np.zeros([imgs.shape[0], 1*imgs.shape[2]*imgs.shape[3], 2], dtype='uint8')
-
-    i = 0
-    for img_array in imgs:
-        if data_augument == True and int(i/16) % 12 !=0:
-            # this mention is used for speeding up,
-            # but may cause some bugs.
-            # if you change a data augumentation method
-            # and this program does not work,
-            # first of all you doubt here.
-            index = i - 16 * (int(i/16) % 12)
-            clabels[i] = clabels[index]
-        else:
-            l = 0
-            for j in xrange(imgs.shape[2]):
-                for k in xrange(imgs.shape[3]):
-                    if img_array[0][j][k] == 0:
-                        clabels[i][l][0] = 1
-                        clabels[i][l][1] = 0
-                    else:
-                        clabels[i][l][0] = 0
-                        clabels[i][l][1] = 1
-                    l += 1
-        i += 1
-
-        if i%1000 == 0 or i == clabels.shape[0]:
-            print 'Categorized', i, '/',  clabels.shape[0]
-
-    return clabels
+def categorize_label(imgs, data_augment=False):
+    return np.stack((imgs == 0, imgs != 0), axis=-1).reshape((imgs.shape[0], -1, 2))
 
 ## load imgs and return img list
-def get_img_list(file_path, file_list, img_type, data_augument = False):
+def get_img_list(file_path, file_list, img_type, data_augment=False):
     from image import load_img
 
     tmp_list = list()
-    for file in file_list:
-        img = load_img(os.path.join(file_path, file), grayscale=True, target_size=(img_rows, img_cols))
+    for filename in file_list:
+        img = load_img(os.path.join(file_path, filename), grayscale=True,
+                                    target_size=(img_rows, img_cols))
         tmp_list.append(img)
 
-        if data_augument == True:
-            augmentated_list = data_augumentation(img, img_type=img_type)
-
-            for tmp in augmentated_list:
-                tmp_list.append(tmp)
+        if data_augment:
+            tmp_list += data_augmentation(img, img_type=img_type)
 
     return tmp_list
 
@@ -74,7 +43,7 @@ def get_divided_img_array(imgs, tmp_list):
     return imgs
 
 
-def data_augumentation(img, img_type):
+def data_augmentation(img, img_type):
     from image import gamma_img, rotate_img, flip_img
 
     augmentated_list = list()
@@ -119,7 +88,7 @@ def make_test_and_val_list(tmp_raw_list, tmp_label_list, tmp_name_list):
     return test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list
 
 
-def make_train_array(train_path, data_augument = False):
+def make_train_array(train_path, data_augment = False):
     from ios import get_file_list
 
     print '*'*30
@@ -128,7 +97,7 @@ def make_train_array(train_path, data_augument = False):
     file_path = os.path.join(train_path,'raw/')
     file_list, name_list = get_file_list(file_path)
 
-    tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augument=data_augument)
+    tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augment=data_augment)
 
     total = len(tmp_raw_list)
     imgs_raw = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
@@ -141,14 +110,14 @@ def make_train_array(train_path, data_augument = False):
     file_path = os.path.join(train_path,'label/')
     file_list, name_list = get_file_list(file_path)
 
-    tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augument=data_augument)
+    tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augment=data_augment)
 
     total = len(tmp_label_list)
     imgs_label = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
 
     imgs_label = get_divided_img_array(imgs_label, tmp_label_list)
 
-    imgs_label = categorize_label(imgs_label, data_augument=data_augument)
+    imgs_label = categorize_label(imgs_label, data_augment=data_augment)
 
     return imgs_raw, imgs_label
 
@@ -163,7 +132,7 @@ def make_test_array(test_path):
     file_path = os.path.join(test_path,'raw/')
     file_list, name_list = get_file_list(file_path)
 
-    tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augument=False)
+    tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augment=False)
 
     print '*'*30
     print 'make test_label array...'
@@ -172,9 +141,10 @@ def make_test_array(test_path):
     file_path = os.path.join(test_path,'label/')
     file_list, name_list = get_file_list(file_path)
 
-    tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augument=False)
+    tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augment=False)
 
-    test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list = make_test_and_val_list(tmp_raw_list, tmp_label_list, name_list)
+    test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list = \
+            make_test_and_val_list(tmp_raw_list, tmp_label_list, name_list)
 
     total_test = len(test_raw_list)*16
     test_raw = np.zeros([total_test, 1, img_rows/4, img_cols/4], dtype='float32')
@@ -189,8 +159,8 @@ def make_test_array(test_path):
     val_raw = get_divided_img_array(val_raw, val_raw_list)
     val_label = get_divided_img_array(val_label, val_label_list)
 
-    test_label = categorize_label(test_label, data_augument=False)
-    val_label = categorize_label(val_label, data_augument=False)
+    test_label = categorize_label(test_label, data_augment=False)
+    val_label = categorize_label(val_label, data_augment=False)
 
     return test_raw, test_label, test_name_list, val_raw, val_label
 
@@ -230,25 +200,25 @@ def visualize_patches(data_path, output_path, img_type):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Preprocess test and train images')
+    parser.add_argument('dataset_dir', type=str, help='Directory containing the dataset')
+    args = parser.parse_args()
+
     print '*'*50
     print 'Load training images...'
     print '*'*50
-    traindir = sys.argv[1]+'/'
-    test_path = 'test'
-    if len(sys.argv) > 2:
-        test_path = sys.argv[2]
-    train_path = os.path.join(traindir, 'train')
+    train_path = os.path.join(args.dataset_dir, 'train')
     if check_file_list(train_path)==False:
         raise ValueError('Labels do not match with raws.')
 
-    imgs_train_raw, imgs_train_label = make_train_array(train_path, data_augument)
+    imgs_train_raw, imgs_train_label = make_train_array(train_path, data_augment)
 
-    imgs_retrain_raw, imgs_retrain_label = make_train_array(train_path, data_augument=False)
+    imgs_retrain_raw, imgs_retrain_label = make_train_array(train_path, data_augment=False)
 
     print '*'*50
     print 'Load test images...'
     print '*'*50
-    # test_path = './test/'
+    test_path = os.path.join(args.dataset_dir, 'test')
     if check_file_list(test_path)==False:
         raise ValueError('Labels do not match with raws.')
 
@@ -259,15 +229,15 @@ if __name__ == '__main__':
     print 'Save loaded images to numpy files...'
 
 
-    np.save(os.path.join(traindir, 'train_raw.npy'), imgs_train_raw)
-    np.save(os.path.join(traindir, 'train_label.npy'), imgs_train_label)
-    np.save(os.path.join(traindir, 'retrain_raw.npy'), imgs_retrain_raw)
-    np.save(os.path.join(traindir, 'retrain_label.npy'), imgs_retrain_label)
-    np.save(os.path.join(traindir, 'test_raw.npy'), imgs_test_raw)
-    np.save(os.path.join(traindir, 'test_label.npy'), imgs_test_label)
-    np.save(os.path.join(traindir, 'test_name.npy'), imgs_test_name)
-    np.save(os.path.join(traindir, 'val_test_raw.npy'), val_test_raw)
-    np.save(os.path.join(traindir, 'val_test_label.npy'), val_test_label)
+    np.save(os.path.join(args.dataset_dir, 'train_raw.npy'), imgs_train_raw)
+    np.save(os.path.join(args.dataset_dir, 'train_label.npy'), imgs_train_label)
+    np.save(os.path.join(args.dataset_dir, 'retrain_raw.npy'), imgs_retrain_raw)
+    np.save(os.path.join(args.dataset_dir, 'retrain_label.npy'), imgs_retrain_label)
+    np.save(os.path.join(args.dataset_dir, 'test_raw.npy'), imgs_test_raw)
+    np.save(os.path.join(args.dataset_dir, 'test_label.npy'), imgs_test_label)
+    np.save(os.path.join(args.dataset_dir, 'test_name.npy'), imgs_test_name)
+    np.save(os.path.join(args.dataset_dir, 'val_test_raw.npy'), val_test_raw)
+    np.save(os.path.join(args.dataset_dir, 'val_test_label.npy'), val_test_label)
 
     print 'imgs_train_raw:', imgs_train_raw.shape
     print 'imgs_train_label:', imgs_train_label.shape
