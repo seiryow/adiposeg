@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from ios import check_file_list
+from ios import check_file_list, get_file_list
 import sys
 import argparse
 
@@ -29,18 +29,14 @@ def get_img_list(file_path, file_list, img_type, data_augment=False):
     return tmp_list
 
 ## divide each img in tmp_list and return them in the form of array
-def get_divided_img_array(imgs, tmp_list):
+def get_divided_img_array(tmp_list):
     from image import img_to_array, divide_img
 
-    i=0
-    for tmp in tmp_list:
-        divided_tmp = divide_img(tmp)
+    imgs = [img_to_array(patch) / 255
+                for tmp in tmp_list
+                for patch in divide_img(tmp)]
 
-        for patch in divided_tmp:
-            imgs[i] = img_to_array(patch) / 255
-            i += 1
-
-    return imgs
+    return np.stack(imgs, axis=0)
 
 
 def data_augmentation(img, img_type):
@@ -58,41 +54,16 @@ def data_augmentation(img, img_type):
     return augmentated_list
 
 
-def make_test_and_val_list(tmp_raw_list, tmp_label_list, tmp_name_list):
-    import random
-
-    total = len(tmp_raw_list)
-
-    index = random.sample(xrange(total), int(total/2))
-    sort = index
-    sort.sort()
-
-    test_raw_list = list()
-    test_label_list = list()
-    test_name_list = list()
-    val_raw_list = list()
-    val_label_list = list()
-
-    j = 0
-    for i in xrange(total):
-        if i == sort[j]:
-            val_raw_list.append(tmp_raw_list[i])
-            val_label_list.append(tmp_label_list[i])
-            if(j < int(total/2)-1):
-                j += 1
-        else:
-            test_raw_list.append(tmp_raw_list[i])
-            test_label_list.append(tmp_label_list[i])
-            test_name_list.append(tmp_name_list[i])
-
-    return test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list
-
-
-def make_train_array(train_path, data_augment = False):
-    from ios import get_file_list
+def make_train_array(train_path, data_augment=False):
+    print '*'*50
+    print 'Load images from %s...' % train_path
+    print '*'*50
+    train_path = os.path.join(args.dataset_dir, 'train')
+    if not check_file_list(train_path):
+        raise ValueError('%s Labels do not match with raws.' % train_path)
 
     print '*'*30
-    print 'make train_raw array...'
+    print '%s make raw array...' % train_path
     print '*'*30
     file_path = os.path.join(train_path,'raw/')
     file_list, name_list = get_file_list(file_path)
@@ -102,10 +73,10 @@ def make_train_array(train_path, data_augment = False):
     total = len(tmp_raw_list)
     imgs_raw = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
 
-    imgs_raw = get_divided_img_array(imgs_raw, tmp_raw_list)
+    imgs_raw = get_divided_img_array(tmp_raw_list)
 
     print '*'*30
-    print 'make train_label array...'
+    print '%s make label array...' % train_path
     print '*'*30
     file_path = os.path.join(train_path,'label/')
     file_list, name_list = get_file_list(file_path)
@@ -115,54 +86,11 @@ def make_train_array(train_path, data_augment = False):
     total = len(tmp_label_list)
     imgs_label = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
 
-    imgs_label = get_divided_img_array(imgs_label, tmp_label_list)
+    imgs_label = get_divided_img_array(tmp_label_list)
 
     imgs_label = categorize_label(imgs_label, data_augment=data_augment)
 
-    return imgs_raw, imgs_label
-
-
-def make_test_array(test_path):
-    from ios import get_file_list
-
-    print '*'*30
-    print 'make test_raw array...'
-    print '*'*30
-
-    file_path = os.path.join(test_path,'raw/')
-    file_list, name_list = get_file_list(file_path)
-
-    tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augment=False)
-
-    print '*'*30
-    print 'make test_label array...'
-    print '*'*30
-
-    file_path = os.path.join(test_path,'label/')
-    file_list, name_list = get_file_list(file_path)
-
-    tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augment=False)
-
-    test_raw_list, test_label_list, test_name_list, val_raw_list, val_label_list = \
-            make_test_and_val_list(tmp_raw_list, tmp_label_list, name_list)
-
-    total_test = len(test_raw_list)*16
-    test_raw = np.zeros([total_test, 1, img_rows/4, img_cols/4], dtype='float32')
-    test_label = np.zeros([total_test, 1, img_rows/4, img_cols/4], dtype='float32')
-
-    total_val = len(val_raw_list)*16
-    val_raw = np.zeros([total_val, 1, img_rows/4, img_cols/4], dtype='float32')
-    val_label = np.zeros([total_val, 1, img_rows/4, img_cols/4], dtype='float32')
-
-    test_raw = get_divided_img_array(test_raw, test_raw_list)
-    test_label = get_divided_img_array(test_label, test_label_list)
-    val_raw = get_divided_img_array(val_raw, val_raw_list)
-    val_label = get_divided_img_array(val_label, val_label_list)
-
-    test_label = categorize_label(test_label, data_augment=False)
-    val_label = categorize_label(val_label, data_augment=False)
-
-    return test_raw, test_label, test_name_list, val_raw, val_label
+    return imgs_raw, imgs_label, name_list
 
 
 ## this function is for debug
@@ -204,30 +132,18 @@ if __name__ == '__main__':
     parser.add_argument('dataset_dir', type=str, help='Directory containing the dataset')
     args = parser.parse_args()
 
-    print '*'*50
-    print 'Load training images...'
-    print '*'*50
     train_path = os.path.join(args.dataset_dir, 'train')
-    if check_file_list(train_path)==False:
-        raise ValueError('Labels do not match with raws.')
-
-    imgs_train_raw, imgs_train_label = make_train_array(train_path, data_augment)
-
-    imgs_retrain_raw, imgs_retrain_label = make_train_array(train_path, data_augment=False)
-
-    print '*'*50
-    print 'Load test images...'
-    print '*'*50
+    val_path = os.path.join(args.dataset_dir, 'val')
     test_path = os.path.join(args.dataset_dir, 'test')
-    if check_file_list(test_path)==False:
-        raise ValueError('Labels do not match with raws.')
 
-    imgs_test_raw, imgs_test_label, imgs_test_name, val_test_raw, val_test_label = make_test_array(test_path)
+    imgs_train_raw, imgs_train_label, _ = make_train_array(train_path, data_augment)
+    imgs_retrain_raw, imgs_retrain_label, _ = make_train_array(train_path, data_augment=False)
+    imgs_test_raw, imgs_test_label, imgs_test_name = make_train_array(test_path, False)
+    imgs_val_raw, imgs_val_label, _ = make_train_array(val_path, False)
 
     print '*'*50
 
     print 'Save loaded images to numpy files...'
-
 
     np.save(os.path.join(args.dataset_dir, 'train_raw.npy'), imgs_train_raw)
     np.save(os.path.join(args.dataset_dir, 'train_label.npy'), imgs_train_label)
@@ -236,8 +152,8 @@ if __name__ == '__main__':
     np.save(os.path.join(args.dataset_dir, 'test_raw.npy'), imgs_test_raw)
     np.save(os.path.join(args.dataset_dir, 'test_label.npy'), imgs_test_label)
     np.save(os.path.join(args.dataset_dir, 'test_name.npy'), imgs_test_name)
-    np.save(os.path.join(args.dataset_dir, 'val_test_raw.npy'), val_test_raw)
-    np.save(os.path.join(args.dataset_dir, 'val_test_label.npy'), val_test_label)
+    np.save(os.path.join(args.dataset_dir, 'val_test_raw.npy'), imgs_val_raw)
+    np.save(os.path.join(args.dataset_dir, 'val_test_label.npy'), imgs_val_label)
 
     print 'imgs_train_raw:', imgs_train_raw.shape
     print 'imgs_train_label:', imgs_train_label.shape
@@ -245,8 +161,8 @@ if __name__ == '__main__':
     print 'imgs_retrain_label:', imgs_retrain_label.shape
     print 'imgs_test_raw:', imgs_test_raw.shape
     print 'imgs_test_label:', imgs_test_label.shape
-    print 'val_test_raw:', val_test_raw.shape
-    print 'val_test_label:', val_test_label.shape
+    print 'imgs_val_raw:', imgs_val_raw.shape
+    print 'imgs_val_label:', imgs_val_label.shape
 
     print '*'*50
 

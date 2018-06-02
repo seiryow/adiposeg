@@ -11,6 +11,8 @@
 <body>
 <h1 id="adipocyte-segmentation-tool-using-keras">Adipocyte Segmentation Tool using Keras</h1>
 <h2 id="how-to-use">How to Use</h2>
+<h3 id="virtual-env">Virtual env</h3>
+<pre><code>workon adiposeg</code></pre>
 <h3 id="prepare-dataset.-your-dataset-should-be-organized-like-this">Prepare dataset. Your dataset should be organized like this</h3>
 <pre><code>dataset_dir
     train
@@ -42,8 +44,18 @@
         raw
             img1.png
             img2.png
-            img3.png</code></pre>
+            img3.png
+    val
+        label
+            ...
+        raw
+            ...</code></pre>
 <p>Half of the images in <code>test</code> will be used for validation.</p>
+<h3 id="split-validation-set-from-train-set">Split validation set from train set</h3>
+<p>In case you have not had a validation set and want to take a part of the train set as the validation set, you can use the following script.</p>
+<pre><code>python create_val.py dataset_dir
+python create_val.py dataset_dir --val_ratio 10 # Take 10% of the train set</code></pre>
+<p>A new dataset named <code>dataset_dir_date_time</code> will be created.</p>
 <h3 id="preprocess">Preprocess</h3>
 <pre><code>python preprocess.py dataset_dir</code></pre>
 <p>Many <code>.npy</code> files will be created and saved at <code>dataset_dir</code></p>
