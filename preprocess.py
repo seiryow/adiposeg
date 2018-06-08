@@ -54,18 +54,17 @@ def data_augmentation(img, img_type):
     return augmentated_list
 
 
-def make_train_array(train_path, data_augment=False):
+def make_array(data_path, data_augment=False):
     print '*'*50
-    print 'Load images from %s...' % train_path
+    print 'Load images from %s...' % data_path
     print '*'*50
-    train_path = os.path.join(args.dataset_dir, 'train')
-    if not check_file_list(train_path):
-        raise ValueError('%s Labels do not match with raws.' % train_path)
+    if not check_file_list(data_path):
+        raise ValueError('%s Labels do not match with raws.' % data_path)
 
     print '*'*30
-    print '%s make raw array...' % train_path
+    print '%s make raw array...' % data_path
     print '*'*30
-    file_path = os.path.join(train_path,'raw/')
+    file_path = os.path.join(data_path,'raw/')
     file_list, name_list = get_file_list(file_path)
 
     tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augment=data_augment)
@@ -76,9 +75,9 @@ def make_train_array(train_path, data_augment=False):
     imgs_raw = get_divided_img_array(tmp_raw_list)
 
     print '*'*30
-    print '%s make label array...' % train_path
+    print '%s make label array...' % data_path
     print '*'*30
-    file_path = os.path.join(train_path,'label/')
+    file_path = os.path.join(data_path,'label/')
     file_list, name_list = get_file_list(file_path)
 
     tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augment=data_augment)
@@ -136,10 +135,10 @@ if __name__ == '__main__':
     val_path = os.path.join(args.dataset_dir, 'val')
     test_path = os.path.join(args.dataset_dir, 'test')
 
-    imgs_train_raw, imgs_train_label, _ = make_train_array(train_path, data_augment)
-    imgs_retrain_raw, imgs_retrain_label, _ = make_train_array(train_path, data_augment=False)
-    imgs_test_raw, imgs_test_label, imgs_test_name = make_train_array(test_path, False)
-    imgs_val_raw, imgs_val_label, _ = make_train_array(val_path, False)
+    imgs_train_raw, imgs_train_label, _ = make_array(train_path, data_augment)
+    imgs_retrain_raw, imgs_retrain_label, _ = make_array(train_path, data_augment=False)
+    imgs_test_raw, imgs_test_label, imgs_test_name = make_array(test_path, False)
+    imgs_val_raw, imgs_val_label, _ = make_array(val_path, False)
 
     print '*'*50
 
