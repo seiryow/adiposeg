@@ -97,16 +97,16 @@ if __name__ == '__main__':
     parser.add_argument('dataset_dir', type=str, help='Directory containing the dataset')
     args = parser.parse_args()
 
-    traindir = args.dataset_dir
-    output_path = os.path.join(traindir, 'output')
-    model_path = os.path.join(traindir, 'weights', 'unet.hdf5')
+    data_dir = args.dataset_dir
+    output_path = os.path.join(data_dir, 'output')
+    model_path = os.path.join(data_dir, 'weights', 'unet.hdf5')
 
     print '*'*50
     print 'Loading and preprocessing test data...'
     print '*'*50
-    imgs_test_raw = np.load(os.path.join(traindir, 'test_raw.npy'))
-    imgs_test_label = np.load(os.path.join(traindir, 'test_label.npy'))
-    imgs_test_name = np.load(os.path.join(traindir, 'test_name.npy'))
+    imgs_test_raw = np.load(os.path.join(data_dir, 'test_raw.npy'))
+    imgs_test_label = np.load(os.path.join(data_dir, 'test_label.npy'))
+    imgs_test_name = np.load(os.path.join(data_dir, 'test_name.npy'))
 
     print '*'*50
     print 'Loading built model and trained weights...'
