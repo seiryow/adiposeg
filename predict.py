@@ -80,11 +80,16 @@ def visualize_ts(dir_path, imgs_test_name, imgs_true, imgs_pred):
     print('Calculate threat score...')
 
     for x in range(imgs_test_name.shape[0]):
-        ts_img = np.zeros([3, imgs_true.shape[2], imgs_true.shape[3]], dtype='uint8')
+        ts_img = np.zeros([3, imgs_true.shape[1], imgs_true.shape[2]], dtype='uint8')
 
-        ts_img[0] = imgs_true[x][0]
-        ts_img[1] = imgs_pred[x][0]
-        ts_img[2] = imgs_pred[x][0]
+        # TODO: it works but still not know why
+        # ts_img[0] = imgs_true[x][0]
+        # ts_img[1] = imgs_pred[x][0]
+        # ts_img[2] = imgs_pred[x][0]
+        ts_img[0] = (imgs_true.transpose(0,3,1,2))[x][0]
+        ts_img[1] = (imgs_pred.transpose(0,3,1,2))[x][0]
+        ts_img[2] = (imgs_pred.transpose(0,3,1,2))[x][0]
+        ts_img = ts_img.transpose(1, 2, 0)
 
         ts_img *= 255
         ts = array_to_img(ts_img,scale=False)
