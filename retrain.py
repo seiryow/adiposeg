@@ -20,7 +20,7 @@ def clabel_to_img(clabel, img_rows, img_cols):
 
     j = 0
     k = 0
-    for l in xrange(clabel.shape[0]):
+    for l in range(clabel.shape[0]):
         if clabel[l][0] == 0:
             img[0][j][k] = 1
         else:
@@ -39,8 +39,8 @@ def categorize_label(imgs, data_augument=False):
     i = 0
     for img_array in imgs:
         l = 0
-        for j in xrange(imgs.shape[2]):
-            for k in xrange(imgs.shape[3]):
+        for j in range(imgs.shape[2]):
+            for k in range(imgs.shape[3]):
                 if img_array[0][j][k] == 0:
                     clabels[i][l][0] = 1
                     clabels[i][l][1] = 0
@@ -60,7 +60,7 @@ def rotate_img(img_list):
     tmp_list = list()
     size = len(img_list)
 
-    for x in xrange(size):
+    for x in range(size):
         tmp_list.append(img_list[x])
 
         tmp = img_list[x].transpose(Image.ROTATE_90)
@@ -77,7 +77,7 @@ def flip_img(img_list):
     tmp_list = list()
     size = len(img_list)
 
-    for x in xrange(size):
+    for x in range(size):
         tmp_list.append(img_list[x])
 
         flip = img_list[x].transpose(Image.FLIP_LEFT_RIGHT)
@@ -95,7 +95,7 @@ def get_random_index(sort):
     if r < bottom:
         return 0
 
-    for x in xrange(sort.shape[0]-1):
+    for x in range(sort.shape[0]-1):
         top = sort[x+1]
         if bottom <= r and r < top:
             return x+1
@@ -108,7 +108,7 @@ def data_augumentation(imgs, img_type):
 
     tmp = list()
 
-    for x in xrange(imgs.shape[0]):
+    for x in range(imgs.shape[0]):
         img = imgs[x]
         if img_type == 'clabel':
             img = clabel_to_img(img, 128, 128)
@@ -120,7 +120,7 @@ def data_augumentation(imgs, img_type):
     total = len(augmentated_list)
     augmentated_imgs = np.zeros([total, 1, 128, 128], dtype='float32')
 
-    for x in xrange(total):
+    for x in range(total):
         if img_type == 'clabel':
             data_path = os.path.join('test/retrain/label/img'+str(x)+'.png')
             augmentated_list[x].save(data_path)
@@ -143,9 +143,9 @@ def make_retrain_array(imgs_test_raw, imgs_test_label, test_pred):
     test_total = test_pred.shape[0]
     size = test_pred.shape[1]
     prob = np.zeros([test_total], dtype="float32")
-    for x in xrange(test_total):
+    for x in range(test_total):
         tmp = 0
-        for i in xrange(size):
+        for i in range(size):
             tmp += math.fabs(test_pred[x][i][1] - 0.5)
         prob[x] = tmp/size
 
@@ -162,7 +162,7 @@ def make_retrain_array(imgs_test_raw, imgs_test_label, test_pred):
     new_train_raw = np.zeros([ntotal, 1, imgs_test_raw.shape[2], imgs_test_raw.shape[3]], dtype='float32')
     new_train_label = np.zeros([ntotal, test_pred.shape[1], 2], dtype='uint8')
 
-    for x in xrange(ntotal):
+    for x in range(ntotal):
         #i = get_random_index(sort)
         #new_train_raw[x] = imgs_test_raw[index[i]]
         #new_train_label[x] = np.round(test_pred[index[i]])
@@ -208,7 +208,7 @@ def retrain():
 
     checkpoint = ModelCheckpoint(current_path, monitor='val_acc', save_best_only=True)
 
-    for x in xrange(loop):
+    for x in range(loop):
         print '*'*50
         print 'Loop:', x
         print '*'*50

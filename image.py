@@ -80,10 +80,10 @@ def divide_img(img):
 
     subregion = list()
     ds = float(rsize)/4.0
-    for i in xrange(4):
+    for i in range(4):
         wmin = int(ds*i)
         wmax = int(ds*(i+1))
-        for j in xrange(4):
+        for j in range(4):
             k = 4*i + j
             hmin = int(ds*j)
             hmax = int(ds*(j+1))
@@ -99,8 +99,8 @@ def combine_img(img_list):
 
     combined_img = Image.new("L", (w*4, h*4))
 
-    for x in xrange(4):
-        for y in xrange(4):
+    for x in range(4):
+        for y in range(4):
             combined_img.paste(img_list[4*x+y],(w*x,h*y))
 
     return combined_img
@@ -114,21 +114,21 @@ def gamma_img(img_list, img_type):
     delta = 2.5 / time
 
     if img_type == 'raw':
-        for x in xrange(size):
+        for x in range(size):
             tmp_list.append(img_list[x])
 
             gamma = 0.1
             tmp = img_to_array(img_list[x]) ** gamma / 255
             tmp_list.append(array_to_img(tmp, scale=True))
 
-            for t in xrange(time):
+            for t in range(time):
                 gamma = delta * (t + 1)
                 tmp = img_to_array(img_list[x]) ** gamma / 255
                 tmp_list.append(array_to_img(tmp, scale=True))
 
     if img_type == 'label':
-        for x in xrange(size):
-            for y in xrange(time + 2):
+        for x in range(size):
+            for y in range(time + 2):
                 tmp_list.append(img_list[x])
 
     return tmp_list
@@ -138,18 +138,18 @@ def rotate_img(img_list):
     tmp_list = list()
     size = len(img_list)
 
-    for x in xrange(size):
+    for x in range(size):
         tmp_list.append(img_list[x])
 
-    for x in xrange(size):
+    for x in range(size):
         tmp = img_list[x].transpose(Image.ROTATE_90)
         tmp_list.append(tmp)
 
-    for x in xrange(size):
+    for x in range(size):
         tmp = img_list[x].transpose(Image.ROTATE_180)
         tmp_list.append(tmp)
 
-    for x in xrange(size):
+    for x in range(size):
         tmp = img_list[x].transpose(Image.ROTATE_270)
         tmp_list.append(tmp)
 
@@ -160,10 +160,10 @@ def flip_img(img_list):
     tmp_list = list()
     size = len(img_list)
 
-    for x in xrange(size):
+    for x in range(size):
         tmp_list.append(img_list[x])
 
-    for x in xrange(size):
+    for x in range(size):
         flip = img_list[x].transpose(Image.FLIP_LEFT_RIGHT)
         tmp_list.append(flip)
 

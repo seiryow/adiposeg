@@ -28,7 +28,7 @@ def make_error_file(dir_path, imgs_test_name, y_true, y_pred):
     l = s.split(",")
     csvWriter.writerow(l)
 
-    for x in xrange(hist.shape[0]):
+    for x in range(hist.shape[0]):
         tmp = list()
         tmp.append(imgs_test_name[x])
         tmp.append(pix_err[x])
@@ -59,7 +59,7 @@ def visualize(dir_path, imgs_test_name, imgs, visualize=True):
     total = imgs_test_name.shape[0]
     combined_imgs = np.zeros([total, 1, imgs.shape[2]*4, imgs.shape[3]*4], dtype = 'uint8')
 
-    for x in xrange(total):
+    for x in range(total):
         combined_img = combine_img(tmp_list[16*x:16*(x+1)])
         if visualize == True:
             combined_img.save(os.path.join(dir_path, imgs_test_name[x]))
@@ -78,7 +78,7 @@ def visualize_ts(dir_path, imgs_test_name, imgs_true, imgs_pred):
 
     print 'Calculate threat score...'
 
-    for x in xrange(imgs_test_name.shape[0]):
+    for x in range(imgs_test_name.shape[0]):
         ts_img = np.zeros([3, imgs_true.shape[2], imgs_true.shape[3]], dtype='uint8')
 
         ts_img[0] = imgs_true[x][0]
