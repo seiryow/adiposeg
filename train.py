@@ -108,9 +108,9 @@ def train(traindir):
     import shutil
     from keras.utils import plot_model
 
-    print '*'*50
-    print 'Loading train data...'
-    print '*'*50
+    print('*'*50)
+    print('Loading train data...')
+    print('*'*50)
     imgs_train_raw = np.load( os.path.join(traindir, 'train_raw.npy'))
     imgs_train_label = np.load( os.path.join(traindir, 'train_label.npy'))
 
@@ -124,9 +124,9 @@ def train(traindir):
     # val_test_label = np.load( traindir + 'val_test_label.npy')
 
 
-    print '*'*50
-    print 'Creating and compiling the model...'
-    print '*'*50
+    print('*'*50)
+    print('Creating and compiling the model...')
+    print('*'*50)
 
     img_rows = imgs_train_raw.shape[2]
     img_cols = imgs_train_raw.shape[3]
@@ -140,9 +140,9 @@ def train(traindir):
     plot_model(model, to_file= os.path.join(traindir, 'model.png'))
     # plot_model(model, to_file= traindir + 'model.png')
 
-    print '*'*50
-    print 'Fitting model...'
-    print '*'*50
+    print('*'*50)
+    print('Fitting model...')
+    print('*'*50)
 
     ## make output dir
     dir_path = make_output_dir(weight_path)
@@ -161,7 +161,7 @@ def train(traindir):
     shutil.copyfile(os.path.join(weight_path, 'unet.hdf5'), os.path.join(dir_path, 'unet.hdf5'))
     make_history_file(dir_path, hist)
 
-    print 'Done.'
+    print('Done.')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Preprocess test and train images')

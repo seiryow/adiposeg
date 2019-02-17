@@ -3,6 +3,7 @@ import numpy as np
 from ios import check_file_list, get_file_list
 import sys
 import argparse
+from pprint import pprint
 
 img_rows = 512
 img_cols = 512
@@ -55,15 +56,16 @@ def data_augmentation(img, img_type):
 
 
 def make_array(data_path, data_augment=False):
-    print '*'*50
-    print 'Load images from %s...' % data_path
-    print '*'*50
+    print('*'*50)
+    print('Load images from %s...' % data_path)
+    print('*'*50)
+    pprint (data_path)
     if not check_file_list(data_path):
         raise ValueError('%s Labels do not match with raws.' % data_path)
 
-    print '*'*30
-    print '%s make raw array...' % data_path
-    print '*'*30
+    print('*'*30)
+    print('%s make raw array...' % data_path)
+    print('*'*30)
     file_path = os.path.join(data_path,'raw/')
     file_list, name_list = get_file_list(file_path)
 
@@ -74,9 +76,9 @@ def make_array(data_path, data_augment=False):
 
     imgs_raw = get_divided_img_array(tmp_raw_list)
 
-    print '*'*30
-    print '%s make label array...' % data_path
-    print '*'*30
+    print('*'*30)
+    print('%s make label array...' % data_path)
+    print('*'*30)
     file_path = os.path.join(data_path,'label/')
     file_list, name_list = get_file_list(file_path)
 
@@ -117,13 +119,13 @@ def visualize_patches(data_path, output_path, img_type):
         img = array_to_img(img_array, scale=False)
         tmp_list.append(img)
 
-    for x in xrange(total/16):
+    for x in range(total/16):
         combined_img = combine_img(tmp_list[16*x:16*(x+1)])
 
         data_path = os.path.join(output_path,'img'+str(x)+'.png')
 
         combined_img.save(data_path)
-        print 'save image:',x+1,'/',total/16
+        print('save image:',x+1,'/',total/16)
 
 
 if __name__ == '__main__':
@@ -140,9 +142,9 @@ if __name__ == '__main__':
     imgs_test_raw, imgs_test_label, imgs_test_name = make_array(test_path, False)
     imgs_val_raw, imgs_val_label, _ = make_array(val_path, False)
 
-    print '*'*50
+    print('*'*50)
 
-    print 'Save loaded images to numpy files...'
+    print('Save loaded images to numpy files...')
 
     np.save(os.path.join(args.dataset_dir, 'train_raw.npy'), imgs_train_raw)
     np.save(os.path.join(args.dataset_dir, 'train_label.npy'), imgs_train_label)
@@ -154,18 +156,18 @@ if __name__ == '__main__':
     np.save(os.path.join(args.dataset_dir, 'val_test_raw.npy'), imgs_val_raw)
     np.save(os.path.join(args.dataset_dir, 'val_test_label.npy'), imgs_val_label)
 
-    print 'imgs_train_raw:', imgs_train_raw.shape
-    print 'imgs_train_label:', imgs_train_label.shape
-    print 'imgs_retrain_raw:', imgs_retrain_raw.shape
-    print 'imgs_retrain_label:', imgs_retrain_label.shape
-    print 'imgs_test_raw:', imgs_test_raw.shape
-    print 'imgs_test_label:', imgs_test_label.shape
-    print 'imgs_val_raw:', imgs_val_raw.shape
-    print 'imgs_val_label:', imgs_val_label.shape
+    print('imgs_train_raw:', imgs_train_raw.shape)
+    print('imgs_train_label:', imgs_train_label.shape)
+    print('imgs_retrain_raw:', imgs_retrain_raw.shape)
+    print('imgs_retrain_label:', imgs_retrain_label.shape)
+    print('imgs_test_raw:', imgs_test_raw.shape)
+    print('imgs_test_label:', imgs_test_label.shape)
+    print('imgs_val_raw:', imgs_val_raw.shape)
+    print('imgs_val_label:', imgs_val_label.shape)
 
-    print '*'*50
+    print('*'*50)
 
-    print 'Done.'
+    print('Done.')
 
     ## for test display
     #visualize_patches('train_raw.npy', 'test/train/raw/' , img_type='raw')

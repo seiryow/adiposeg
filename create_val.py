@@ -3,12 +3,13 @@ import datetime
 import argparse
 import shutil
 import numpy as np
+from pprint import pprint
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset_dir', type=str)
     parser.add_argument('--output_dir', type=str)
-    parser.add_argument('--val_ratio', type=int, default=20, choices=range(101))
+    parser.add_argument('--val_ratio', type=int, default=20, choices=list(range(101)))
     args = parser.parse_args()
 
     dataset_dir = os.path.normpath(args.dataset_dir)
@@ -28,11 +29,11 @@ if __name__ == '__main__':
     test_set = 'test'
 
     if os.path.exists(output_dir):
-        confirm = raw_input("The existing output dir will be removed. Are you sure (yes/no): ")
+        confirm = input("The existing output dir will be removed. Are you sure (yes/no): ")
         if confirm.strip() == 'yes':
             shutil.rmtree(output_dir)
         else:
-            print "Stopped"
+            print("Stopped")
             exit()
 
     os.makedirs(output_dir)
@@ -53,7 +54,7 @@ if __name__ == '__main__':
         subset = os.path.relpath(dirname, os.path.join(dataset_dir, train_set, 'raw'))
         full_filenames = [os.path.join(subset, filename) for filename in filenames]
         np.random.shuffle(full_filenames)
-        val_take = len(full_filenames) * args.val_ratio / 100
+        val_take = int(len(full_filenames) * args.val_ratio / 100)
         train_files += full_filenames[val_take:]
         val_files += full_filenames[:val_take]
 

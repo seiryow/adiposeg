@@ -31,7 +31,7 @@ def check_file_list(path):
     if not raw_size == label_size:
         return False
 
-    for x in xrange(raw_size):
+    for x in range(raw_size):
         if not raw_files[x] == label_files[x]:
             return False
 
