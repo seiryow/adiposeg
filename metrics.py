@@ -1,4 +1,5 @@
 import numpy as np
+from pprint import pprint
 
 
 def flatten_img(y):
@@ -11,10 +12,9 @@ def flatten_patch(y):
 
 def pixel_error_to_img(y_true, y_pred):
     from sklearn.metrics import hamming_loss
+    loss = np.zeros([int(y_true.shape[0]/16)], dtype='float32')
 
-    loss = np.zeros([y_true.shape[0]/16], dtype='float32')
-
-    for x in range(y_true.shape[0]/16):
+    for x in range(int(y_true.shape[0]/16)):
         flatten_true = flatten_img(y_true[x:x+16])
         flatten_pred = flatten_img(y_pred[x:x+16])
         loss[x] = hamming_loss(flatten_true, flatten_pred)
@@ -25,9 +25,9 @@ def pixel_error_to_img(y_true, y_pred):
 def rand_error_to_img(y_true, y_pred):
     from sklearn.metrics.cluster import adjusted_rand_score
 
-    loss = np.zeros([y_true.shape[0]/16], dtype='float32')
+    loss = np.zeros([int(y_true.shape[0]/16)], dtype='float32')
 
-    for x in range(y_true.shape[0]/16):
+    for x in range(int(y_true.shape[0]/16)):
         flatten_true = flatten_img(y_true[x:x+16])
         flatten_pred = flatten_img(y_pred[x:x+16])
         loss[x] = 1 - adjusted_rand_score(flatten_true, flatten_pred)

@@ -1,5 +1,6 @@
 import numpy as np
 from PIL import Image
+from pprint import pprint
 
 
 def load_img(path, grayscale=False, target_size=None):
@@ -20,7 +21,7 @@ def load_img(path, grayscale=False, target_size=None):
     return img
 
 
-def img_to_array(img, dim_ordering='th'):
+def img_to_array(img, dim_ordering='tf'):
     if dim_ordering not in {'th', 'tf'}:
         raise ValueError('Unknown dim_ordering: ', dim_ordering)
     # Numpy array x has format (height, width, channel)
@@ -40,7 +41,7 @@ def img_to_array(img, dim_ordering='th'):
     return x
 
 
-def array_to_img(x, dim_ordering='th', scale=True):
+def array_to_img(x, dim_ordering='tf', scale=True):
     x = np.asarray(x)
     if x.ndim != 3:
         raise ValueError('Expected image array to have rank 3 (single image). '
