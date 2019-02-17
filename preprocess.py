@@ -72,7 +72,7 @@ def make_array(data_path, data_augment=False):
     tmp_raw_list = get_img_list(file_path, file_list, img_type='raw', data_augment=data_augment)
 
     total = len(tmp_raw_list)
-    imgs_raw = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
+    imgs_raw = np.zeros([total*16, 1, int(img_rows/4), int(img_cols/4)], dtype='float32')
 
     imgs_raw = get_divided_img_array(tmp_raw_list)
 
@@ -85,7 +85,7 @@ def make_array(data_path, data_augment=False):
     tmp_label_list = get_img_list(file_path, file_list, img_type='label', data_augment=data_augment)
 
     total = len(tmp_label_list)
-    imgs_label = np.zeros([total*16, 1, img_rows/4, img_cols/4], dtype='float32')
+    imgs_label = np.zeros([total*16, 1, int(img_rows/4), int(img_cols/4)], dtype='float32')
 
     imgs_label = get_divided_img_array(tmp_label_list)
 

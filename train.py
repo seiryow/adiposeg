@@ -19,7 +19,8 @@ nb_epoch = 25
 def get_unet(img_rows, img_cols):
     from keras.models import Model
     from keras.layers.core import Reshape, Permute, Activation
-    from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
+    from keras.layers import concatenate, Conv2D, Conv2DTranspose
+    from keras.layers import Input, Concatenate, Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
     from keras.layers.normalization import BatchNormalization
     from keras import backend as K
     K.set_image_dim_ordering('th')
@@ -49,7 +50,7 @@ def get_unet(img_rows, img_cols):
     deconv1 = Deconvolution2D(512, 2, 2, output_shape=(batch_size, 512, img_rows/8, img_cols/8), subsample=(2, 2), activation='relu')(conv10)
     #deconv1 = UpSampling2D(size=(2,2))(conv10)
     #deconv1 = Convolution2D(512, 2, 2, activation='relu', border_mode='same')(deconv1)
-    merge1 = merge([deconv1, conv8], mode='concat', concat_axis=1)
+    merge1 = concatenate([deconv1, deconv1])
     conv11 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(merge1)
     conv12 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv11)
     conv12 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv12)
@@ -57,7 +58,7 @@ def get_unet(img_rows, img_cols):
     deconv2 = Deconvolution2D(256, 2, 2, output_shape=(batch_size, 256, img_rows/4, img_cols/4), subsample=(2, 2), activation='relu')(conv12)
     #deconv2 = UpSampling2D(size=(2,2))(conv12)
     #deconv2 = Convolution2D(256, 2, 2, activation='relu', border_mode='same')(deconv2)
-    merge2 = merge([deconv2, conv6], mode='concat', concat_axis=1)
+    merge2 = concatenate([deconv2, conv6])
     conv13 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(merge2)
     conv14 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv13)
     conv14 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv14)
@@ -65,14 +66,14 @@ def get_unet(img_rows, img_cols):
     deconv3 = Deconvolution2D(128, 2, 2, output_shape=(batch_size, 128, img_rows/2, img_cols/2), subsample=(2, 2), activation='relu')(conv14)
     #deconv3 = UpSampling2D(size=(2,2))(conv14)
     #deconv3 = Convolution2D(128, 2, 2, activation='relu', border_mode='same')(deconv3)
-    merge3 = merge([deconv3, conv4], mode='concat', concat_axis=1)
+    merge3 = concatenate([deconv3, conv4])
     conv15 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(merge3)
     conv16 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(conv15)
 
     deconv4 = Deconvolution2D(64, 2, 2, output_shape=(batch_size, 64, img_rows, img_cols), subsample=(2, 2), activation='relu')(conv16)
     #deconv4 = UpSampling2D(size=(2,2))(conv16)
     #deconv4 = Convolution2D(64, 2, 2, activation='relu', border_mode='same')(deconv4)
-    merge4 = merge([deconv4, conv2], mode='concat', concat_axis=1)
+    merge4 = concatenate([deconv4, conv2])
     conv17 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(merge4)
     conv18 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv17)
 
